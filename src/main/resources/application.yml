@@ -12,3 +12,8 @@ spring:
         format_sql: true
   application:
     name: report_management
+  springdoc:
+    api-docs:
+      path: /api-docs
+    swagger-ui:
+      path: /swagger-ui.html
