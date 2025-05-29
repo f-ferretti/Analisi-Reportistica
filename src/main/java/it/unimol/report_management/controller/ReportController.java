@@ -103,6 +103,12 @@ public class ReportController {
         return reportService.getFeedbacksForTeacher(teacherId);
     }
 
+    @Operation(summary = "Genera un report avanzato per un docente (POST)")
+    @PostMapping("/teacher")
+    public TeacherReportDTO generateTeacherReport(@RequestBody ReportRequestDTO request) {
+        return reportService.generateTeacherReportFromRequest(request);
+    }
+
     // EXPORT
 
     @Operation(summary = "Esporta un report in formato specifico (PDF, JSON, ecc.)")
