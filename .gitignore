@@ -1,0 +1,31 @@
+# IntelliJ
+.idea/
+*.iml
+
+# Java
+*.class
+*.jar
+*.war
+*.ear
+
+# Build
+/target/
+/out/
+
+# Logs
+*.log
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Maven wrapper
+.mvn/
+!**/mvnw
+!**/mvnw.cmd
+
+# Environment & settings
+.env
+*.pem
+*.key
+*.crt
