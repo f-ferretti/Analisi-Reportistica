@@ -1,22 +1,23 @@
 package it.unimol.report_management.client;
 
 import org.springframework.stereotype.Component;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
 
 @Component
 public class FeedbackClient {
 
-    public List<Map<String, Object>> getValutazioniByStudent(String studentId) {
-        return List.of(
-                Map.of("corso", "Basi di Dati", "voto", 30),
-                Map.of("corso", "Programmazione I", "voto", 27)
+    public Map<String, Object> getFeedbackDocente(String docenteId) {
+        return Map.of(
+                "media", 4.6,
+                "commenti", List.of("Molto preparato", "Spiegazioni chiare", "Gentile")
         );
     }
 
-    public List<Map<String, Object>> getValutazioniByDocente(String teacherId) {
-        return List.of(
-                Map.of("corso", "Sistemi Operativi", "mediaVoti", 28.5)
+    public Map<String, Object> getFeedbackCorso(String corsoId) {
+        return Map.of(
+                "media", 4.2,
+                "commenti", List.of("Corso interessante", "Materiale utile", "Tante esercitazioni")
         );
     }
 }

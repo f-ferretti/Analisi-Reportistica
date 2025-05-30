@@ -1,7 +1,9 @@
 package it.unimol.report_management.service.impl;
 
+import it.unimol.report_management.client.*;
 import it.unimol.report_management.dto.*;
 import it.unimol.report_management.service.ReportService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -11,62 +13,110 @@ import java.util.Map;
 @Service
 public class ReportServiceImpl implements ReportService {
 
+    @Autowired private UtentiClient utentiClient;
+    @Autowired private EsamiClient esamiClient;
+    @Autowired private CorsiClient corsiClient;
+    @Autowired private CompitiClient compitiClient;
+    @Autowired private PresenzeClient presenzeClient;
+    @Autowired private FeedbackClient feedbackClient;
+
     @Override
     public StudentReportDTO generateStudentReport(String studentId) {
-        return new StudentReportDTO(studentId, "Mario Rossi", "mario.rossi@studenti.unimol.it",
-                6, 12, 27.3, 89.5, 10, 12, LocalDateTime.now());
+        Map<String, Object> studente = utentiClient.getUtenteById(studentId);
+        String nomeCompleto = studente.get("nome") + " " + studente.get("cognome");
+        String email = (String) studente.get("email");
+
+        return new StudentReportDTO(
+                studentId,
+                nomeCompleto,
+                email,
+                6, 12, 27.3, 89.5, 10, 12,
+                LocalDateTime.now()
+        );
     }
 
     @Override
     public List<Map<String, String>> getCoursesByStudent(String studentId) {
-        return List.of(Map.of("courseId", "INF001", "name", "Basi di Dati"));
+        List<String> corsiIds = corsiClient.getCorsiDocente(studentId); // supponiamo lo studente abbia ID uguale anche nel contesto corsi
+        return corsiIds.stream().map(id -> Map.of("courseId", id, "name", "Mock Corso")).toList();
     }
 
     @Override
     public List<Map<String, Object>> getAssignmentsByStudent(String studentId) {
-        return List.of(Map.of("title", "Compito 1", "status", "consegnato", "grade", 28));
+        return compitiClient.getCompitiStudente(studentId);
     }
 
     @Override
     public List<Map<String, Object>> getExamsByStudent(String studentId) {
-        return List.of(Map.of("examId", "EX123", "course", "Basi di Dati", "grade", 30));
+        return esamiClient.getEsamiSostenuti(studentId);
     }
 
     @Override
     public CourseReportDTO generateCourseReport(String courseId) {
-        return new CourseReportDTO(courseId, "Programmazione I", "INF001",
-                45, 24.8, 78.5, 82.3, 88.9, LocalDateTime.now());
+        Map<String, Object> corso = corsiClient.getCorsoById(courseId);
+        List<Map<String, Object>> voti = esamiClient.getEsitiEsameCorso(courseId);
+        List<Map<String, Object>> compiti = compitiClient.getCompitiCorso(courseId);
+        List<Map<String, Object>> presenze = presenzeClient.getPresenzeCorso(courseId);
+
+        return new CourseReportDTO(
+                courseId,
+                (String) corso.get("nome"),
+                (String) corso.get("id"),
+                voti.size(),
+                25.0,
+                78.0,
+                82.0,
+                88.0,
+                LocalDateTime.now()
+        );
     }
 
     @Override
     public List<Map<String, Object>> getGradesByCourse(String courseId) {
-        return List.of(Map.of("studentId", "123", "grade", 27));
+        return esamiClient.getEsitiEsameCorso(courseId);
     }
 
     @Override
     public List<Map<String, Object>> getAttendanceByCourse(String courseId) {
-        return List.of(Map.of("studentId", "123", "attendanceRate", 92.5));
+        return presenzeClient.getPresenzeCorso(courseId);
     }
 
     @Override
     public List<Map<String, Object>> getAssignmentsByCourse(String courseId) {
-        return List.of(Map.of("assignment", "Progetto finale", "completionRate", 87.0));
+        return compitiClient.getCompitiCorso(courseId);
     }
 
     @Override
     public TeacherReportDTO generateTeacherReport(String teacherId) {
-        return new TeacherReportDTO(teacherId, "Prof. Giovanni Bianchi", "g.bianchi@unimol.it",
-                3, 120, 4.2, 85.0, LocalDateTime.now());
+        Map<String, Object> docente = utentiClient.getUtenteById(teacherId);
+        Map<String, Object> feedback = feedbackClient.getFeedbackDocente(teacherId);
+        List<String> corsi = corsiClient.getCorsiDocente(teacherId);
+
+        String nomeCompleto = docente.get("nome") + " " + docente.get("cognome");
+        String email = (String) docente.get("email");
+        double rating = (double) feedback.get("media");
+
+        return new TeacherReportDTO(
+                teacherId,
+                nomeCompleto,
+                email,
+                corsi.size(),
+                120,
+                rating,
+                85.0,
+                LocalDateTime.now()
+        );
     }
 
     @Override
     public List<Map<String, Object>> getGradesGivenByTeacher(String teacherId) {
-        return List.of(Map.of("course", "Basi di Dati", "avgGrade", 28.3));
+        return List.of(Map.of("course", "Basi di Dati", "avgGrade", 28.3)); // placeholder
     }
 
     @Override
     public List<Map<String, Object>> getFeedbacksForTeacher(String teacherId) {
-        return List.of(Map.of("avgRating", 4.5, "comments", List.of("Molto chiaro", "Disponibile")));
+        Map<String, Object> feedback = feedbackClient.getFeedbackDocente(teacherId);
+        return List.of(feedback);
     }
 
     @Override
