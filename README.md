@@ -4,108 +4,249 @@
 
 Il microservizio **Analisi e Reportistica** è responsabile della generazione di report di base sull'attività della piattaforma universitaria. Fornisce informazioni aggregate e analisi dei dati accademici per supportare decisioni gestionali e monitorare le performance di studenti, corsi e docenti.
 
-## Funzionalità Principali
-
-Il microservizio implementa le seguenti funzionalità per gli utenti con ruolo **Amministrativo**:
-
-### 1. Report Attività di uno Studente
-
-- `GET /api/reports/student/{studentId}/courses`  
-  ➤ Restituisce l'elenco dei corsi frequentati dallo studente.
-
-- `GET /api/reports/student/{studentId}/assignments`  
-  ➤ Storico dei compiti consegnati, con stato e voto.
-
-- `GET /api/reports/student/{studentId}/exams`  
-  ➤ Esami sostenuti con risultati e dettagli.
-
-- `GET /api/reports/student/{studentId}/summary`  
-  ➤ Report aggregato con media voti, corsi, compiti e presenze.
-
-- `POST /api/reports/student`  
-  ➤ Genera un report personalizzato per uno studente con filtri su date e formato.
-
-### 2. Report Performance degli Studenti in un Corso
-
-- `GET /api/reports/course/{courseId}/grades`  
-  ➤ Statistiche sui voti degli studenti.
-
-- `GET /api/reports/course/{courseId}/attendance`  
-  ➤ Percentuali di frequenza.
-
-- `GET /api/reports/course/{courseId}/assignments`  
-  ➤ Percentuali di consegna e punteggi medi.
-
-- `GET /api/reports/course/{courseId}/summary`  
-  ➤ Vista complessiva della performance del corso.
-
-- `POST /api/reports/course`  
-  ➤ Genera un report personalizzato per un corso con opzioni avanzate.
-
-### 3. Report Valutazioni di un Docente
-
-- `GET /api/reports/teacher/{teacherId}/given-grades`  
-  ➤ Statistiche sui voti assegnati dal docente.
-
-- `GET /api/reports/teacher/{teacherId}/feedbacks`  
-  ➤ Aggregazione dei feedback ricevuti.
-
-- `GET /api/reports/teacher/{teacherId}/summary`  
-  ➤ Report finale sul docente.
-
-- `POST /api/reports/export`  
-  ➤ Esporta o salva un report generato in formato specifico (es. PDF).
-
 ## API Endpoints
 
 ### Report Studente
 
-#### GET /api/reports/student/{studentId}/courses
-#### GET /api/reports/student/{studentId}/assignments
-#### GET /api/reports/student/{studentId}/exams
-#### GET /api/reports/student/{studentId}/summary
-#### POST /api/reports/student
+#### `GET /api/v1/reports/student/{studentId}/courses`
+**Parametri**
+- `studentId`: ID univoco dello studente (da Gestione Utenti)
 
+**Output**
+```json
+[{ "courseId": "INF001", "name": "Basi di Dati" }]
+```
+**Errori**
+- `401 Unauthorized` – Token mancante o invalido
+
+---
+
+#### `GET /api/v1/reports/student/{studentId}/assignments`
+**Parametri**
+- `studentId`: ID univoco dello studente (da Gestione Utenti)
+
+**Output**
+```json
+[{ "title": "Compito 1", "status": "consegnato", "grade": 28 }]
+```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `GET /api/v1/reports/student/{studentId}/exams`
+**Parametri**
+- `studentId`: ID univoco dello studente (da Gestione Utenti)
+
+**Output**
+```json
+[{ "examId": "EX123", "course": "Basi di Dati", "grade": 30 }]
+```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `GET /api/v1/reports/student/{studentId}/summary`
+**Parametri**
+- `studentId`: ID univoco dello studente (da Gestione Utenti)
+
+**Output**
 ```json
 {
-  "studentId": "12345",
-  "startDate": "2024-09-01",
-  "endDate": "2025-03-31",
-  "format": "pdf"
+  "studentId": "123",
+  "studentName": "Mario Rossi",
+  "studentEmail": "mario.rossi@studenti.unimol.it",
+  "enrolledCourses": 6,
+  "completedExams": 12,
+  "averageGrade": 27.3,
+  "attendanceRate": 89.5,
+  "assignmentsSubmitted": 10,
+  "assignmentsTotal": 12,
+  "reportGeneratedAt": "2025-05-30T12:00:00"
 }
 ```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `POST /api/v1/reports/student`
+**Input**
+```json
+{
+  "studentId": "12345",      //(da Gestione Utenti)
+  "startDate": "01-09-2024", //(formato  DD-MM-YYYY)    
+  "endDate": "31-03-2025",   // (formato  DD-MM-YYYY)
+  "format": "pdf"            // Formato del report: "pdf", "json", "csv"
+}
+```
+**Output**
+```json
+"Exported report for student 12345 in PDF format"
+```
+**Errori**
+- `400 Bad Request` – dati mancanti
+- `401 Unauthorized`
+
+---
 
 ### Report Corso
 
-#### GET /api/reports/course/{courseId}/grades
-#### GET /api/reports/course/{courseId}/attendance
-#### GET /api/reports/course/{courseId}/assignments
-#### GET /api/reports/course/{courseId}/summary
-#### POST /api/reports/course
+#### `GET /api/v1/reports/course/{courseId}/grades`
+**Parametri**
+- `courseId`: Codice del corso (da Gestione Corsi)
 
+**Output**
+```json
+[{ "studentId": "123", "grade": 27 }]
+```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `GET /api/v1/reports/course/{courseId}/attendance`
+**Parametri**
+- `courseId`: Codice del corso (da Gestione Corsi)
+
+**Output**
+```json
+[{ "studentId": "123", "attendanceRate": 92.5 }]
+```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `GET /api/v1/reports/course/{courseId}/assignments`
+**Parametri**
+- `courseId`: Codice del corso (da Gestione Corsi)
+
+**Output**
+```json
+[{ "assignment": "Progetto finale", "completionRate": 87.0 }]
+```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `GET /api/v1/reports/course/{courseId}/summary`
+**Parametri**
+- `courseId`: Codice del corso (da Gestione Corsi)
+
+**Output**
 ```json
 {
   "courseId": "CS101",
-  "format": "json",
-  "includeDetails": true
+  "courseName": "Programmazione I",
+  "courseCode": "INF001",
+  "enrolledStudents": 45,
+  "averageGrade": 24.8,
+  "passRate": 78.5,
+  "attendanceRate": 82.3,
+  "assignmentCompletionRate": 88.9,
+  "reportGeneratedAt": "2025-05-30T12:00:00"
 }
 ```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `POST /api/v1/reports/course`
+**Input**
+```json
+{
+  "courseId": "CS101",    // (da Gestione Corsi)
+  "format": "json",       // Formato del report: "pdf", "json", "csv"
+  "includeDetails": true  // true per includere dettagli aggiuntivi
+}
+```
+**Output**
+```json
+"Exported report for course CS101 in JSON format"
+```
+**Errori**
+- `400 Bad Request`
+- `401 Unauthorized`
+
+---
 
 ### Report Docente
 
-#### GET /api/reports/teacher/{teacherId}/given-grades
-#### GET /api/reports/teacher/{teacherId}/feedbacks
-#### GET /api/reports/teacher/{teacherId}/summary
-#### POST /api/reports/export
+#### `GET /api/v1/reports/teacher/{teacherId}/given-grades`
+**Parametri**
+- `teacherId`: ID del docente (da Gestione Utenti)
 
+**Output**
+```json
+[{ "course": "Basi di Dati", "avgGrade": 28.3 }]
+```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `GET /api/v1/reports/teacher/{teacherId}/feedbacks`
+**Parametri**
+- `teacherId`: ID del docente (da Gestione Utenti)
+
+**Output**
 ```json
 {
-  "reportType": "teacher",
-  "targetId": "DOC001",
-  "format": "pdf",
-  "notify": true
+  "avgRating": 4.5,
+  "comments": ["Molto chiaro", "Disponibile"]
 }
 ```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `GET /api/v1/reports/teacher/{teacherId}/summary`
+**Parametri**
+- `teacherId`: ID del docente (da Gestione Utenti)
+
+**Output**
+```json
+{
+  "teacherId": "DOC001",
+  "teacherName": "Prof. Giovanni Bianchi",
+  "teacherEmail": "g.bianchi@unimol.it",
+  "coursesTeaching": 3,
+  "totalStudents": 120,
+  "averageFeedback": 4.2,
+  "responseRate": 85.0,
+  "reportGeneratedAt": "2025-05-30T12:00:00"
+}
+```
+**Errori**
+- `401 Unauthorized`
+
+---
+
+#### `POST /api/v1/reports/export`
+**Input**
+```json
+{
+  "reportType": "teacher",  // "student", "course"
+  "targetId": "DOC001",     // ID del soggetto per cui generare il report
+  "format": "pdf",          // Formato del report: "pdf", "json", "csv"
+  "notify": true            // Se true, invia notifica all’utente
+}
+```
+**Output**
+```json
+"Exported report of type 'teacher' for DOC001"
+```
+**Errori**
+- `400 Bad Request`
+- `401 Unauthorized`
+
+---
+
 
 ## 🔐 Sicurezza e Autenticazione
 
