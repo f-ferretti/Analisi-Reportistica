@@ -1,97 +1,108 @@
 package it.unimol.report_management.service.impl;
 
+import it.unimol.report_management.client.*;
 import it.unimol.report_management.service.ReportService;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class ReportServiceImpl implements ReportService {
 
-    private byte[] generateDummyPdf(String title) {
-        return (title + " PDF content").getBytes();
+    private final UtentiClient utentiClient;
+    private final EsamiClient esamiClient;
+    private final CorsiClient corsiClient;
+    private final CompitiClient compitiClient;
+    private final PresenzeClient presenzeClient;
+    private final FeedbackClient feedbackClient;
+
+    public ReportServiceImpl(UtentiClient utentiClient, EsamiClient esamiClient, CorsiClient corsiClient,
+                             CompitiClient compitiClient, PresenzeClient presenzeClient, FeedbackClient feedbackClient) {
+        this.utentiClient = utentiClient;
+        this.esamiClient = esamiClient;
+        this.corsiClient = corsiClient;
+        this.compitiClient = compitiClient;
+        this.presenzeClient = presenzeClient;
+        this.feedbackClient = feedbackClient;
     }
 
-    private ResponseEntity<?> handleFormat(String title, String format) {
-        if ("pdf".equalsIgnoreCase(format)) {
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + title.replace(" ", "_") + ".pdf")
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(generateDummyPdf(title));
-        } else {
-            Map<String, Object> data = new HashMap<>();
-            data.put("report", title);
-            data.put("status", "ok");
-            return ResponseEntity.ok(data);
-        }
+    private ResponseEntity<?> mock(String description) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", description));
     }
 
-    // STUDENTE
     public ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format) {
-        return handleFormat("Student Activity Report for " + studentId, format);
+        // TODO: usare compitiClient e presenzeClient
+        return mock("Student Activity Report for " + studentId);
     }
 
     public ResponseEntity<?> getStudentGrades(String studentId, String format) {
-        return handleFormat("Student Grades Report for " + studentId, format);
+        // TODO: usare esamiClient per voti dello studente
+        return mock("Student Grades Report for " + studentId);
     }
 
     public ResponseEntity<?> getStudentProgress(String studentId) {
-        return ResponseEntity.ok(Map.of("studentId", studentId, "progress", "75%"));
+        // TODO: calcolare da presenzeClient
+        return mock("Student Progress");
     }
 
     public ResponseEntity<?> getStudentAverage(String studentId) {
-        return ResponseEntity.ok(Map.of("studentId", studentId, "average", 28.5));
+        // TODO: media da esamiClient
+        return mock("Student Average");
     }
 
     public ResponseEntity<?> getStudentCompletionRate(String studentId) {
-        return ResponseEntity.ok(Map.of("studentId", studentId, "completionRate", "92%"));
+        // TODO: completamento compiti o esami
+        return mock("Student Completion Rate");
     }
 
-    // CORSO
     public ResponseEntity<?> getCourseAverage(String courseId) {
-        return ResponseEntity.ok(Map.of("courseId", courseId, "average", 26.3));
+        // TODO: media voti studenti corso da esamiClient
+        return mock("Course Average");
     }
 
     public ResponseEntity<?> getCourseGradeDistribution(String courseId) {
-        return ResponseEntity.ok(Map.of("courseId", courseId, "grades", Map.of("18-21", 10, "22-25", 20, "26-30", 15)));
+        // TODO: istogramma voti da esamiClient
+        return mock("Course Grade Distribution");
     }
 
     public ResponseEntity<?> getCourseCompletionRate(String courseId) {
-        return ResponseEntity.ok(Map.of("courseId", courseId, "completionRate", "87%"));
+        // TODO: % studenti che hanno completato corso
+        return mock("Course Completion Rate");
     }
 
-    // DOCENTE
     public ResponseEntity<?> getTeacherRatings(String teacherId) {
-        return ResponseEntity.ok(Map.of("teacherId", teacherId, "ratings", 4.6));
+        // TODO: media feedback da feedbackClient
+        return mock("Teacher Ratings");
     }
 
     public ResponseEntity<?> getTeacherAverage(String teacherId) {
-        return ResponseEntity.ok(Map.of("teacherId", teacherId, "average", 27.1));
+        // TODO: media dei voti assegnati dal docente
+        return mock("Teacher Average");
     }
 
     public ResponseEntity<?> getTeacherFeedback(String teacherId) {
-        return ResponseEntity.ok(Map.of("teacherId", teacherId, "feedback", "Molto disponibile e chiaro."));
+        // TODO: lista feedback da feedbackClient
+        return mock("Teacher Feedback");
     }
 
-    // AVANZATI
     public ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format) {
-        return handleFormat("Student Performance Over Time for " + studentId, format);
+        // TODO: andamento voti + compiti in timeline
+        return mock("Student Performance Over Time");
     }
 
     public ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format) {
-        return handleFormat("Course Performance Over Time for " + courseId, format);
+        // TODO: performance media studenti nel tempo
+        return mock("Course Performance Over Time");
     }
 
     public ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format) {
-        return handleFormat("Teacher Performance Over Time for " + teacherId, format);
+        // TODO: performance valutazioni nel tempo
+        return mock("Teacher Performance Over Time");
     }
 
-    // GLOBALE
     public ResponseEntity<?> getGlobalSummary() {
-        return ResponseEntity.ok(Map.of("summary", "Report generale del sistema universitario"));
+        // TODO: aggregazione di più metriche
+        return mock("Global Summary Report");
     }
 }

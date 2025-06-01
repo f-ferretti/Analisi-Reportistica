@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import it.unimol.report_management.service.ReportService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,6 +16,7 @@ public class ReportController {
     private final ReportService reportService;
 
     // STUDENTE
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     @GetMapping("/students/{studentId}/activity")
     public ResponseEntity<?> getStudentActivity(@PathVariable String studentId,
                                                 @RequestParam(required = false) String startDate,
@@ -23,60 +25,71 @@ public class ReportController {
         return reportService.getStudentActivity(studentId, startDate, endDate, format);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     @GetMapping("/students/{studentId}/grades")
     public ResponseEntity<?> getStudentGrades(@PathVariable String studentId,
                                               @RequestParam(defaultValue = "json") String format) {
         return reportService.getStudentGrades(studentId, format);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     @GetMapping("/students/{studentId}/progress")
     public ResponseEntity<?> getStudentProgress(@PathVariable String studentId) {
         return reportService.getStudentProgress(studentId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     @GetMapping("/students/{studentId}/average")
     public ResponseEntity<?> getStudentAverage(@PathVariable String studentId) {
         return reportService.getStudentAverage(studentId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     @GetMapping("/students/{studentId}/completion-rate")
     public ResponseEntity<?> getStudentCompletionRate(@PathVariable String studentId) {
         return reportService.getStudentCompletionRate(studentId);
     }
 
     // CORSO
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/courses/{courseId}/average")
     public ResponseEntity<?> getCourseAverage(@PathVariable String courseId) {
         return reportService.getCourseAverage(courseId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/courses/{courseId}/distribution")
     public ResponseEntity<?> getCourseGradeDistribution(@PathVariable String courseId) {
         return reportService.getCourseGradeDistribution(courseId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/courses/{courseId}/completion-rate")
     public ResponseEntity<?> getCourseCompletionRate(@PathVariable String courseId) {
         return reportService.getCourseCompletionRate(courseId);
     }
 
     // DOCENTE
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/teachers/{teacherId}/ratings")
     public ResponseEntity<?> getTeacherRatings(@PathVariable String teacherId) {
         return reportService.getTeacherRatings(teacherId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/teachers/{teacherId}/average")
     public ResponseEntity<?> getTeacherAverage(@PathVariable String teacherId) {
         return reportService.getTeacherAverage(teacherId);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/teachers/{teacherId}/feedback")
     public ResponseEntity<?> getTeacherFeedback(@PathVariable String teacherId) {
         return reportService.getTeacherFeedback(teacherId);
     }
 
     // AVANZATI
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/students/{studentId}/performance-over-time")
     public ResponseEntity<?> getStudentPerformanceOverTime(@PathVariable String studentId,
                                                            @RequestParam(required = false) String startDate,
@@ -85,6 +98,7 @@ public class ReportController {
         return reportService.getStudentPerformanceOverTime(studentId, startDate, endDate, format);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/courses/{courseId}/performance-over-time")
     public ResponseEntity<?> getCoursePerformanceOverTime(@PathVariable String courseId,
                                                           @RequestParam(required = false) String startDate,
@@ -93,6 +107,7 @@ public class ReportController {
         return reportService.getCoursePerformanceOverTime(courseId, startDate, endDate, format);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping("/teachers/{teacherId}/performance-over-time")
     public ResponseEntity<?> getTeacherPerformanceOverTime(@PathVariable String teacherId,
                                                            @RequestParam(required = false) String startDate,
@@ -102,6 +117,7 @@ public class ReportController {
     }
 
     // GLOBALE
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/summary")
     public ResponseEntity<?> getGlobalSummary() {
         return reportService.getGlobalSummary();
