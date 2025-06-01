@@ -10,46 +10,74 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 
 #### `GET /api/v1/reports/student/{studentId}/courses`
 **Parametri**
-- `studentId`: ID univoco dello studente (da Gestione Utenti)
+- `studentId`: ID univoco dello studente (proveniente dal microservizio Gestione Utenti)
 
 **Output**
 ```json
-[{ "courseId": "INF001", "name": "Basi di Dati" }]
+[
+  {
+    "courseId": "INF001",
+    "name": "Basi di Dati"
+  }
+]
 ```
-**Errori**
-- `401 Unauthorized` – Token mancante o invalido
+
+| Campo       | Significato                 | Origine                      |
+|-------------|------------------------------|------------------------------|
+| `courseId`  | Codice identificativo corso  | Microservizio Corsi          |
+| `name`      | Nome del corso               | Microservizio Corsi          |
 
 ---
 
 #### `GET /api/v1/reports/student/{studentId}/assignments`
 **Parametri**
-- `studentId`: ID univoco dello studente (da Gestione Utenti)
+- `studentId`: ID univoco dello studente (proveniente dal microservizio Gestione Utenti)
 
 **Output**
 ```json
-[{ "title": "Compito 1", "status": "consegnato", "grade": 28 }]
+[
+  {
+    "title": "Compito 1",
+    "status": "consegnato",
+    "grade": 28
+  }
+]
 ```
-**Errori**
-- `401 Unauthorized`
+
+| Campo    | Significato           | Origine                    |
+|----------|------------------------|----------------------------|
+| `title`  | Titolo del compito     | Microservizio Compiti      |
+| `status` | Stato di consegna      | Microservizio Compiti      |
+| `grade`  | Voto ottenuto          | Microservizio Compiti      |
 
 ---
 
 #### `GET /api/v1/reports/student/{studentId}/exams`
 **Parametri**
-- `studentId`: ID univoco dello studente (da Gestione Utenti)
+- `studentId`: ID univoco dello studente (proveniente dal microservizio Gestione Utenti)
 
 **Output**
 ```json
-[{ "examId": "EX123", "course": "Basi di Dati", "grade": 30 }]
+[
+  {
+    "examId": "EX123",
+    "course": "Basi di Dati",
+    "grade": 30
+  }
+]
 ```
-**Errori**
-- `401 Unauthorized`
+
+| Campo     | Significato              | Origine                   |
+|-----------|---------------------------|---------------------------|
+| `examId`  | ID univoco esame          | Microservizio Esami       |
+| `course`  | Nome del corso            | Microservizio Corsi       |
+| `grade`   | Voto ottenuto             | Microservizio Esami       |
 
 ---
 
 #### `GET /api/v1/reports/student/{studentId}/summary`
 **Parametri**
-- `studentId`: ID univoco dello studente (da Gestione Utenti)
+- `studentId`: ID univoco dello studente (proveniente dal microservizio Gestione Utenti)
 
 **Output**
 ```json
@@ -66,8 +94,19 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
   "reportGeneratedAt": "2025-05-30T12:00:00"
 }
 ```
-**Errori**
-- `401 Unauthorized`
+
+| Campo                 | Significato                                  |
+|-----------------------|-----------------------------------------------|
+| `studentId`           | ID dello studente                             |
+| `studentName`         | Nome completo dello studente                  |
+| `studentEmail`        | Email istituzionale                           |
+| `enrolledCourses`     | Numero di corsi frequentati                   |
+| `completedExams`      | Numero di esami completati                    |
+| `averageGrade`        | Media voti                                    |
+| `attendanceRate`      | Percentuale media di presenza                 |
+| `assignmentsSubmitted`| Numero di compiti consegnati                  |
+| `assignmentsTotal`    | Numero totale di compiti assegnati            |
+| `reportGeneratedAt`   | Timestamp di generazione del report           |
 
 ---
 
@@ -75,19 +114,24 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 **Input**
 ```json
 {
-  "studentId": "12345",      //(da Gestione Utenti)
-  "startDate": "01-09-2024", //(formato  DD-MM-YYYY)    
-  "endDate": "31-03-2025",   // (formato  DD-MM-YYYY)
-  "format": "pdf"            // Formato del report: "pdf", "json", "csv"
+  "studentId": "12345",
+  "startDate": "01-09-2024",
+  "endDate": "31-03-2025",
+  "format": "pdf"
 }
 ```
+
+| Campo       | Significato                               |
+|-------------|-------------------------------------------|
+| `studentId` | ID dello studente (da Gestione Utenti)    |
+| `startDate` | Data inizio periodo (formato DD-MM-YYYY)  |
+| `endDate`   | Data fine periodo (formato DD-MM-YYYY)    |
+| `format`    | Formato del report (`pdf`, `csv`, `json`) |
+
 **Output**
 ```json
 "Exported report for student 12345 in PDF format"
 ```
-**Errori**
-- `400 Bad Request` – dati mancanti
-- `401 Unauthorized`
 
 ---
 
@@ -99,10 +143,18 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 
 **Output**
 ```json
-[{ "studentId": "123", "grade": 27 }]
+[
+  {
+    "studentId": "123",
+    "grade": 27
+  }
+]
 ```
-**Errori**
-- `401 Unauthorized`
+
+| Campo       | Significato                     |
+|-------------|----------------------------------|
+| `studentId` | ID dello studente                |
+| `grade`     | Voto ricevuto                    |
 
 ---
 
@@ -112,10 +164,18 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 
 **Output**
 ```json
-[{ "studentId": "123", "attendanceRate": 92.5 }]
+[
+  {
+    "studentId": "123",
+    "attendanceRate": 92.5
+  }
+]
 ```
-**Errori**
-- `401 Unauthorized`
+
+| Campo          | Significato                     |
+|----------------|----------------------------------|
+| `studentId`    | ID dello studente                |
+| `attendanceRate` | Percentuale di frequenza       |
 
 ---
 
@@ -125,10 +185,18 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 
 **Output**
 ```json
-[{ "assignment": "Progetto finale", "completionRate": 87.0 }]
+[
+  {
+    "assignment": "Progetto finale",
+    "completionRate": 87.0
+  }
+]
 ```
-**Errori**
-- `401 Unauthorized`
+
+| Campo           | Significato                         |
+|------------------|--------------------------------------|
+| `assignment`     | Nome dell'assegnazione              |
+| `completionRate` | Percentuale di completamento        |
 
 ---
 
@@ -139,114 +207,52 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 **Output**
 ```json
 {
-  "courseId": "CS101",
-  "courseName": "Programmazione I",
-  "courseCode": "INF001",
-  "enrolledStudents": 45,
-  "averageGrade": 24.8,
-  "passRate": 78.5,
-  "attendanceRate": 82.3,
-  "assignmentCompletionRate": 88.9,
+  "courseId": "INF001",
+  "courseName": "Basi di Dati",
+  "enrolledStudents": 120,
+  "averageGrade": 26.7,
+  "averageAttendance": 88.9,
+  "assignmentsGiven": 6,
   "reportGeneratedAt": "2025-05-30T12:00:00"
 }
 ```
-**Errori**
-- `401 Unauthorized`
 
----
-
-#### `POST /api/v1/reports/course`
-**Input**
-```json
-{
-  "courseId": "CS101",    // (da Gestione Corsi)
-  "format": "json",       // Formato del report: "pdf", "json", "csv"
-  "includeDetails": true  // true per includere dettagli aggiuntivi
-}
-```
-**Output**
-```json
-"Exported report for course CS101 in JSON format"
-```
-**Errori**
-- `400 Bad Request`
-- `401 Unauthorized`
+| Campo              | Significato                            |
+|---------------------|-----------------------------------------|
+| `courseId`          | ID del corso                            |
+| `courseName`        | Nome del corso                          |
+| `enrolledStudents`  | Numero studenti iscritti                |
+| `averageGrade`      | Media voti                              |
+| `averageAttendance` | Media presenze                          |
+| `assignmentsGiven`  | Numero totale di compiti assegnati      |
+| `reportGeneratedAt` | Timestamp generazione del report        |
 
 ---
 
 ### Report Docente
 
-#### `GET /api/v1/reports/teacher/{teacherId}/given-grades`
-**Parametri**
-- `teacherId`: ID del docente (da Gestione Utenti)
-
-**Output**
-```json
-[{ "course": "Basi di Dati", "avgGrade": 28.3 }]
-```
-**Errori**
-- `401 Unauthorized`
-
----
-
-#### `GET /api/v1/reports/teacher/{teacherId}/feedbacks`
-**Parametri**
-- `teacherId`: ID del docente (da Gestione Utenti)
-
-**Output**
-```json
-{
-  "avgRating": 4.5,
-  "comments": ["Molto chiaro", "Disponibile"]
-}
-```
-**Errori**
-- `401 Unauthorized`
-
----
-
-#### `GET /api/v1/reports/teacher/{teacherId}/summary`
-**Parametri**
-- `teacherId`: ID del docente (da Gestione Utenti)
-
-**Output**
-```json
-{
-  "teacherId": "DOC001",
-  "teacherName": "Prof. Giovanni Bianchi",
-  "teacherEmail": "g.bianchi@unimol.it",
-  "coursesTeaching": 3,
-  "totalStudents": 120,
-  "averageFeedback": 4.2,
-  "responseRate": 85.0,
-  "reportGeneratedAt": "2025-05-30T12:00:00"
-}
-```
-**Errori**
-- `401 Unauthorized`
-
----
-
-#### `POST /api/v1/reports/export`
+#### `POST /api/v1/reports/teacher`
 **Input**
 ```json
 {
-  "reportType": "teacher",  // "student", "course"
-  "targetId": "DOC001",     // ID del soggetto per cui generare il report
-  "format": "pdf",          // Formato del report: "pdf", "json", "csv"
-  "notify": true            // Se true, invia notifica all’utente
+  "teacherId": "T9876",
+  "startDate": "2024-10-01",
+  "endDate": "2025-03-31",
+  "format": "csv"
 }
 ```
+
+| Campo       | Significato                                |
+|-------------|---------------------------------------------|
+| `teacherId` | ID docente (da Gestione Utenti)            |
+| `startDate` | Inizio intervallo (formato YYYY-MM-DD)     |
+| `endDate`   | Fine intervallo (formato YYYY-MM-DD)       |
+| `format`    | Formato desiderato (`pdf`, `csv`, `json`)  |
+
 **Output**
 ```json
-"Exported report of type 'teacher' for DOC001"
+"Exported report for teacher T9876 in CSV format"
 ```
-**Errori**
-- `400 Bad Request`
-- `401 Unauthorized`
-
----
-
 
 ## 🔐 Sicurezza e Autenticazione
 
