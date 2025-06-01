@@ -1,141 +1,97 @@
 package it.unimol.report_management.service.impl;
 
-import it.unimol.report_management.client.*;
-import it.unimol.report_management.dto.*;
 import it.unimol.report_management.service.ReportService;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDateTime;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
 public class ReportServiceImpl implements ReportService {
 
-    @Autowired private UtentiClient utentiClient;
-    @Autowired private EsamiClient esamiClient;
-    @Autowired private CorsiClient corsiClient;
-    @Autowired private CompitiClient compitiClient;
-    @Autowired private PresenzeClient presenzeClient;
-    @Autowired private FeedbackClient feedbackClient;
-
-    @Override
-    public StudentReportDTO generateStudentReport(String studentId) {
-        Map<String, Object> studente = utentiClient.getUtenteById(studentId);
-        String nomeCompleto = studente.get("nome") + " " + studente.get("cognome");
-        String email = (String) studente.get("email");
-
-        return new StudentReportDTO(
-                studentId,
-                nomeCompleto,
-                email,
-                6, 12, 27.3, 89.5, 10, 12,
-                LocalDateTime.now()
-        );
+    private byte[] generateDummyPdf(String title) {
+        return (title + " PDF content").getBytes();
     }
 
-    @Override
-    public List<Map<String, String>> getCoursesByStudent(String studentId) {
-        List<String> corsiIds = corsiClient.getCorsiDocente(studentId); // supponiamo lo studente abbia ID uguale anche nel contesto corsi
-        return corsiIds.stream().map(id -> Map.of("courseId", id, "name", "Mock Corso")).toList();
+    private ResponseEntity<?> handleFormat(String title, String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + title.replace(" ", "_") + ".pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(generateDummyPdf(title));
+        } else {
+            Map<String, Object> data = new HashMap<>();
+            data.put("report", title);
+            data.put("status", "ok");
+            return ResponseEntity.ok(data);
+        }
     }
 
-    @Override
-    public List<Map<String, Object>> getAssignmentsByStudent(String studentId) {
-        return compitiClient.getCompitiStudente(studentId);
+    // STUDENTE
+    public ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format) {
+        return handleFormat("Student Activity Report for " + studentId, format);
     }
 
-    @Override
-    public List<Map<String, Object>> getExamsByStudent(String studentId) {
-        return esamiClient.getEsamiSostenuti(studentId);
+    public ResponseEntity<?> getStudentGrades(String studentId, String format) {
+        return handleFormat("Student Grades Report for " + studentId, format);
     }
 
-    @Override
-    public CourseReportDTO generateCourseReport(String courseId) {
-        Map<String, Object> corso = corsiClient.getCorsoById(courseId);
-        List<Map<String, Object>> voti = esamiClient.getEsitiEsameCorso(courseId);
-        List<Map<String, Object>> compiti = compitiClient.getCompitiCorso(courseId);
-        List<Map<String, Object>> presenze = presenzeClient.getPresenzeCorso(courseId);
-
-        return new CourseReportDTO(
-                courseId,
-                (String) corso.get("nome"),
-                (String) corso.get("id"),
-                voti.size(),
-                25.0,
-                78.0,
-                82.0,
-                88.0,
-                LocalDateTime.now()
-        );
+    public ResponseEntity<?> getStudentProgress(String studentId) {
+        return ResponseEntity.ok(Map.of("studentId", studentId, "progress", "75%"));
     }
 
-    @Override
-    public List<Map<String, Object>> getGradesByCourse(String courseId) {
-        return esamiClient.getEsitiEsameCorso(courseId);
+    public ResponseEntity<?> getStudentAverage(String studentId) {
+        return ResponseEntity.ok(Map.of("studentId", studentId, "average", 28.5));
     }
 
-    @Override
-    public List<Map<String, Object>> getAttendanceByCourse(String courseId) {
-        return presenzeClient.getPresenzeCorso(courseId);
+    public ResponseEntity<?> getStudentCompletionRate(String studentId) {
+        return ResponseEntity.ok(Map.of("studentId", studentId, "completionRate", "92%"));
     }
 
-    @Override
-    public List<Map<String, Object>> getAssignmentsByCourse(String courseId) {
-        return compitiClient.getCompitiCorso(courseId);
+    // CORSO
+    public ResponseEntity<?> getCourseAverage(String courseId) {
+        return ResponseEntity.ok(Map.of("courseId", courseId, "average", 26.3));
     }
 
-    @Override
-    public TeacherReportDTO generateTeacherReport(String teacherId) {
-        Map<String, Object> docente = utentiClient.getUtenteById(teacherId);
-        Map<String, Object> feedback = feedbackClient.getFeedbackDocente(teacherId);
-        List<String> corsi = corsiClient.getCorsiDocente(teacherId);
-
-        String nomeCompleto = docente.get("nome") + " " + docente.get("cognome");
-        String email = (String) docente.get("email");
-        double rating = (double) feedback.get("media");
-
-        return new TeacherReportDTO(
-                teacherId,
-                nomeCompleto,
-                email,
-                corsi.size(),
-                120,
-                rating,
-                85.0,
-                LocalDateTime.now()
-        );
+    public ResponseEntity<?> getCourseGradeDistribution(String courseId) {
+        return ResponseEntity.ok(Map.of("courseId", courseId, "grades", Map.of("18-21", 10, "22-25", 20, "26-30", 15)));
     }
 
-    @Override
-    public List<Map<String, Object>> getGradesGivenByTeacher(String teacherId) {
-        return List.of(Map.of("course", "Basi di Dati", "avgGrade", 28.3)); // placeholder
+    public ResponseEntity<?> getCourseCompletionRate(String courseId) {
+        return ResponseEntity.ok(Map.of("courseId", courseId, "completionRate", "87%"));
     }
 
-    @Override
-    public List<Map<String, Object>> getFeedbacksForTeacher(String teacherId) {
-        Map<String, Object> feedback = feedbackClient.getFeedbackDocente(teacherId);
-        return List.of(feedback);
+    // DOCENTE
+    public ResponseEntity<?> getTeacherRatings(String teacherId) {
+        return ResponseEntity.ok(Map.of("teacherId", teacherId, "ratings", 4.6));
     }
 
-    @Override
-    public StudentReportDTO generateStudentReportFromRequest(ReportRequestDTO requestDTO) {
-        return generateStudentReport(requestDTO.getTargetId());
+    public ResponseEntity<?> getTeacherAverage(String teacherId) {
+        return ResponseEntity.ok(Map.of("teacherId", teacherId, "average", 27.1));
     }
 
-    @Override
-    public CourseReportDTO generateCourseReportFromRequest(ReportRequestDTO requestDTO) {
-        return generateCourseReport(requestDTO.getTargetId());
+    public ResponseEntity<?> getTeacherFeedback(String teacherId) {
+        return ResponseEntity.ok(Map.of("teacherId", teacherId, "feedback", "Molto disponibile e chiaro."));
     }
 
-    @Override
-    public TeacherReportDTO generateTeacherReportFromRequest(ReportRequestDTO requestDTO) {
-        return generateTeacherReport(requestDTO.getTargetId());
+    // AVANZATI
+    public ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format) {
+        return handleFormat("Student Performance Over Time for " + studentId, format);
     }
 
-    @Override
-    public String exportReport(ReportRequestDTO requestDTO) {
-        return "Exported report of type '" + requestDTO.getReportType() + "' for " + requestDTO.getTargetId();
+    public ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format) {
+        return handleFormat("Course Performance Over Time for " + courseId, format);
+    }
+
+    public ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format) {
+        return handleFormat("Teacher Performance Over Time for " + teacherId, format);
+    }
+
+    // GLOBALE
+    public ResponseEntity<?> getGlobalSummary() {
+        return ResponseEntity.ok(Map.of("summary", "Report generale del sistema universitario"));
     }
 }
