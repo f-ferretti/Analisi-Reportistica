@@ -1,33 +1,31 @@
 package it.unimol.report_management.service;
 
-import it.unimol.report_management.dto.*;
-
-import java.util.List;
-import java.util.Map;
+import org.springframework.http.ResponseEntity;
 
 public interface ReportService {
 
     // STUDENTE
-    StudentReportDTO generateStudentReport(String studentId);
-    List<Map<String, String>> getCoursesByStudent(String studentId);
-    List<Map<String, Object>> getAssignmentsByStudent(String studentId);
-    List<Map<String, Object>> getExamsByStudent(String studentId);
+    ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format);
+    ResponseEntity<?> getStudentGrades(String studentId, String format);
+    ResponseEntity<?> getStudentProgress(String studentId);
+    ResponseEntity<?> getStudentAverage(String studentId);
+    ResponseEntity<?> getStudentCompletionRate(String studentId);
 
     // CORSO
-    CourseReportDTO generateCourseReport(String courseId);
-    List<Map<String, Object>> getGradesByCourse(String courseId);
-    List<Map<String, Object>> getAttendanceByCourse(String courseId);
-    List<Map<String, Object>> getAssignmentsByCourse(String courseId);
+    ResponseEntity<?> getCourseAverage(String courseId);
+    ResponseEntity<?> getCourseGradeDistribution(String courseId);
+    ResponseEntity<?> getCourseCompletionRate(String courseId);
 
     // DOCENTE
-    TeacherReportDTO generateTeacherReport(String teacherId);
-    List<Map<String, Object>> getGradesGivenByTeacher(String teacherId);
-    List<Map<String, Object>> getFeedbacksForTeacher(String teacherId);
+    ResponseEntity<?> getTeacherRatings(String teacherId);
+    ResponseEntity<?> getTeacherAverage(String teacherId);
+    ResponseEntity<?> getTeacherFeedback(String teacherId);
 
-    // RICHIESTE AVANZATE
-    StudentReportDTO generateStudentReportFromRequest(ReportRequestDTO requestDTO);
-    CourseReportDTO generateCourseReportFromRequest(ReportRequestDTO requestDTO);
-    TeacherReportDTO generateTeacherReportFromRequest(ReportRequestDTO requestDTO);
+    // AVANZATI
+    ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format);
+    ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format);
+    ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format);
 
-    String exportReport(ReportRequestDTO requestDTO);
+    // REPORT COMPLESSIVO
+    ResponseEntity<?> getGlobalSummary();
 }
