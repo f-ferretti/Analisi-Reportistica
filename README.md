@@ -6,7 +6,7 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 
 ## API Endpoints
 
-### 📘 Studenti
+### Studenti
 
 #### `GET /api/v1/reports/students/{studentId}/activity`
 Restituisce attività di esami e compiti svolti.
@@ -104,7 +104,7 @@ Andamento delle performance mensili.
 
 ---
 
-### 📗 Corsi
+### Corsi
 
 #### `GET /api/v1/reports/courses/{courseId}/average`
 **Path Param:** `courseId` – ID del corso (proveniente dal microservizio Gestione Corsi)  
@@ -174,7 +174,7 @@ Andamento delle performance nel tempo.
 
 ---
 
-### 📕 Docenti
+### Docenti
 
 #### `GET /api/v1/reports/teachers/{teacherId}/ratings`
 **Path Param:** `teacherId` – ID del docente (proveniente dal microservizio Gestione Utenti)  
@@ -242,7 +242,7 @@ Andamento delle performance docenti nel tempo.
 
 ---
 
-### 📊 Riepilogo Globale
+### Riepilogo Globale
 
 #### `GET /api/v1/reports/summary`
 **Nessun parametro richiesto.**

@@ -1,4 +1,4 @@
-package it.unimol.newunimol.user_roles_management.dto;
+package it.unimol.report_management.dto;
 
 public class TokenJWTDto {
     private String token;
