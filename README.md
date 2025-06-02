@@ -6,253 +6,267 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 
 ## API Endpoints
 
-### Report Studente
+### 📘 Studenti
 
-#### `GET /api/v1/reports/student/{studentId}/courses`
-**Parametri**
-- `studentId`: ID univoco dello studente (proveniente dal microservizio Gestione Utenti)
+#### `GET /api/v1/reports/students/{studentId}/activity`
+Restituisce attività di esami e compiti svolti.
 
-**Output**
-```json
-[
-  {
-    "courseId": "INF001",
-    "name": "Basi di Dati"
-  }
-]
-```
+**Query Params:**
+- `startDate`: Data di inizio (formato `YYYY-MM-DD`, opzionale)
+- `endDate`: Data di fine (formato `YYYY-MM-DD`, opzionale)
+- `format`: Formato di output (`json`, `csv`, `pdf`, default: `json`)
 
-| Campo       | Significato                 | Origine                      |
-|-------------|------------------------------|------------------------------|
-| `courseId`  | Codice identificativo corso  | Microservizio Corsi          |
-| `name`      | Nome del corso               | Microservizio Corsi          |
-
----
-
-#### `GET /api/v1/reports/student/{studentId}/assignments`
-**Parametri**
-- `studentId`: ID univoco dello studente (proveniente dal microservizio Gestione Utenti)
-
-**Output**
-```json
-[
-  {
-    "title": "Compito 1",
-    "status": "consegnato",
-    "grade": 28
-  }
-]
-```
-
-| Campo    | Significato           | Origine                    |
-|----------|------------------------|----------------------------|
-| `title`  | Titolo del compito     | Microservizio Compiti      |
-| `status` | Stato di consegna      | Microservizio Compiti      |
-| `grade`  | Voto ottenuto          | Microservizio Compiti      |
-
----
-
-#### `GET /api/v1/reports/student/{studentId}/exams`
-**Parametri**
-- `studentId`: ID univoco dello studente (proveniente dal microservizio Gestione Utenti)
-
-**Output**
-```json
-[
-  {
-    "examId": "EX123",
-    "course": "Basi di Dati",
-    "grade": 30
-  }
-]
-```
-
-| Campo     | Significato              | Origine                   |
-|-----------|---------------------------|---------------------------|
-| `examId`  | ID univoco esame          | Microservizio Esami       |
-| `course`  | Nome del corso            | Microservizio Corsi       |
-| `grade`   | Voto ottenuto             | Microservizio Esami       |
-
----
-
-#### `GET /api/v1/reports/student/{studentId}/summary`
-**Parametri**
-- `studentId`: ID univoco dello studente (proveniente dal microservizio Gestione Utenti)
-
-**Output**
+**Esempio Response**
 ```json
 {
   "studentId": "123",
-  "studentName": "Mario Rossi",
-  "studentEmail": "mario.rossi@studenti.unimol.it",
-  "enrolledCourses": 6,
-  "completedExams": 12,
-  "averageGrade": 27.3,
-  "attendanceRate": 89.5,
-  "assignmentsSubmitted": 10,
-  "assignmentsTotal": 12,
-  "reportGeneratedAt": "2025-05-30T12:00:00"
+  "assignmentsCompleted": 10,
+  "examsTaken": 5
 }
 ```
 
-| Campo                 | Significato                                  |
-|-----------------------|-----------------------------------------------|
-| `studentId`           | ID dello studente                             |
-| `studentName`         | Nome completo dello studente                  |
-| `studentEmail`        | Email istituzionale                           |
-| `enrolledCourses`     | Numero di corsi frequentati                   |
-| `completedExams`      | Numero di esami completati                    |
-| `averageGrade`        | Media voti                                    |
-| `attendanceRate`      | Percentuale media di presenza                 |
-| `assignmentsSubmitted`| Numero di compiti consegnati                  |
-| `assignmentsTotal`    | Numero totale di compiti assegnati            |
-| `reportGeneratedAt`   | Timestamp di generazione del report           |
-
 ---
 
-#### `POST /api/v1/reports/student`
-**Input**
+#### `GET /api/v1/reports/students/{studentId}/grades`
+**Path Param:** `studentId` – ID dello studente (proveniente dal microservizio Gestione Utenti)  
+Restituisce voti degli esami.
+
+**Esempio Response**
 ```json
 {
-  "studentId": "12345",
-  "startDate": "01-09-2024",
-  "endDate": "31-03-2025",
-  "format": "pdf"
+  "studentId": "123",
+  "grades": [28, 30, 27]
 }
 ```
 
-| Campo       | Significato                               |
-|-------------|-------------------------------------------|
-| `studentId` | ID dello studente (da Gestione Utenti)    |
-| `startDate` | Data inizio periodo (formato DD-MM-YYYY)  |
-| `endDate`   | Data fine periodo (formato DD-MM-YYYY)    |
-| `format`    | Formato del report (`pdf`, `csv`, `json`) |
+---
 
-**Output**
+#### `GET /api/v1/reports/students/{studentId}/progress`
+**Path Param:** `studentId` – ID dello studente (proveniente dal microservizio Gestione Utenti)  
+Restituisce la percentuale di completamento del percorso.
+
+**Esempio Response**
 ```json
-"Exported report for student 12345 in PDF format"
+{
+  "studentId": "123",
+  "progressPercentage": 82.5
+}
 ```
 
 ---
 
-### Report Corso
+#### `GET /api/v1/reports/students/{studentId}/average`
+**Path Param:** `studentId` – ID dello studente (proveniente dal microservizio Gestione Utenti)  
+Restituisce media aritmetica dei voti.
 
-#### `GET /api/v1/reports/course/{courseId}/grades`
-**Parametri**
-- `courseId`: Codice del corso (da Gestione Corsi)
-
-**Output**
+**Esempio Response**
 ```json
-[
-  {
-    "studentId": "123",
-    "grade": 27
+{
+  "studentId": "123",
+  "averageGrade": 27.3
+}
+```
+
+---
+
+#### `GET /api/v1/reports/students/{studentId}/completion-rate`
+**Path Param:** `studentId` – ID dello studente (proveniente dal microservizio Gestione Utenti)  
+Percentuale di completamento degli esami o moduli.
+
+**Esempio Response**
+```json
+{
+  "studentId": "123",
+  "completionRate": 0.89
+}
+```
+
+---
+
+#### `GET /api/v1/reports/students/{studentId}/performance-over-time`
+Andamento delle performance mensili.
+
+**Query Params:**
+- `startDate`: Data di inizio (formato `YYYY-MM-DD`, opzionale)
+- `endDate`: Data di fine (formato `YYYY-MM-DD`, opzionale)
+- `format`: Formato di output (`json`, `csv`, `pdf`, default: `json`)
+
+**Esempio Response**
+```json
+{
+  "studentId": "123",
+  "monthlyPerformance": {
+    "2024-09": 26,
+    "2024-10": 28
   }
-]
+}
 ```
-
-| Campo       | Significato                     |
-|-------------|----------------------------------|
-| `studentId` | ID dello studente                |
-| `grade`     | Voto ricevuto                    |
 
 ---
 
-#### `GET /api/v1/reports/course/{courseId}/attendance`
-**Parametri**
-- `courseId`: Codice del corso (da Gestione Corsi)
+### 📗 Corsi
 
-**Output**
-```json
-[
-  {
-    "studentId": "123",
-    "attendanceRate": 92.5
-  }
-]
-```
+#### `GET /api/v1/reports/courses/{courseId}/average`
+**Path Param:** `courseId` – ID del corso (proveniente dal microservizio Gestione Corsi)  
+Media voti nel corso.
 
-| Campo          | Significato                     |
-|----------------|----------------------------------|
-| `studentId`    | ID dello studente                |
-| `attendanceRate` | Percentuale di frequenza       |
-
----
-
-#### `GET /api/v1/reports/course/{courseId}/assignments`
-**Parametri**
-- `courseId`: Codice del corso (da Gestione Corsi)
-
-**Output**
-```json
-[
-  {
-    "assignment": "Progetto finale",
-    "completionRate": 87.0
-  }
-]
-```
-
-| Campo           | Significato                         |
-|------------------|--------------------------------------|
-| `assignment`     | Nome dell'assegnazione              |
-| `completionRate` | Percentuale di completamento        |
-
----
-
-#### `GET /api/v1/reports/course/{courseId}/summary`
-**Parametri**
-- `courseId`: Codice del corso (da Gestione Corsi)
-
-**Output**
+**Esempio Response**
 ```json
 {
   "courseId": "INF001",
-  "courseName": "Basi di Dati",
-  "enrolledStudents": 120,
-  "averageGrade": 26.7,
-  "averageAttendance": 88.9,
-  "assignmentsGiven": 6,
-  "reportGeneratedAt": "2025-05-30T12:00:00"
+  "averageGrade": 26.7
 }
 ```
-
-| Campo              | Significato                            |
-|---------------------|-----------------------------------------|
-| `courseId`          | ID del corso                            |
-| `courseName`        | Nome del corso                          |
-| `enrolledStudents`  | Numero studenti iscritti                |
-| `averageGrade`      | Media voti                              |
-| `averageAttendance` | Media presenze                          |
-| `assignmentsGiven`  | Numero totale di compiti assegnati      |
-| `reportGeneratedAt` | Timestamp generazione del report        |
 
 ---
 
-### Report Docente
+#### `GET /api/v1/reports/courses/{courseId}/distribution`
+**Path Param:** `courseId` – ID del corso (proveniente dal microservizio Gestione Corsi)  
+Distribuzione voti.
 
-#### `POST /api/v1/reports/teacher`
-**Input**
+**Esempio Response**
 ```json
 {
-  "teacherId": "T9876",
-  "startDate": "2024-10-01",
-  "endDate": "2025-03-31",
-  "format": "csv"
+  "courseId": "INF001",
+  "gradeDistribution": {
+    "18-20": 5,
+    "21-24": 10,
+    "25-27": 12,
+    "28-30": 8
+  }
 }
 ```
 
-| Campo       | Significato                                |
-|-------------|---------------------------------------------|
-| `teacherId` | ID docente (da Gestione Utenti)            |
-| `startDate` | Inizio intervallo (formato YYYY-MM-DD)     |
-| `endDate`   | Fine intervallo (formato YYYY-MM-DD)       |
-| `format`    | Formato desiderato (`pdf`, `csv`, `json`)  |
+---
 
-**Output**
+#### `GET /api/v1/reports/courses/{courseId}/completion-rate`
+**Path Param:** `courseId` – ID del corso (proveniente dal microservizio Gestione Corsi)  
+Percentuale di completamento del corso.
+
+**Esempio Response**
 ```json
-"Exported report for teacher T9876 in CSV format"
+{
+  "courseId": "INF001",
+  "completionRate": 0.84
+}
 ```
+
+---
+
+#### `GET /api/v1/reports/courses/{courseId}/performance-over-time`
+Andamento delle performance nel tempo.
+
+**Query Params:**
+- `startDate`: Data di inizio (formato `YYYY-MM-DD`, opzionale)
+- `endDate`: Data di fine (formato `YYYY-MM-DD`, opzionale)
+- `format`: Formato di output (`json`, `csv`, `pdf`, default: `json`)
+
+**Esempio Response**
+```json
+{
+  "courseId": "INF001",
+  "monthlyPerformance": {
+    "2024-09": 25.1,
+    "2024-10": 26.8
+  }
+}
+```
+
+---
+
+### 📕 Docenti
+
+#### `GET /api/v1/reports/teachers/{teacherId}/ratings`
+**Path Param:** `teacherId` – ID del docente (proveniente dal microservizio Gestione Utenti)  
+Restituisce valutazioni numeriche ricevute.
+
+**Esempio Response**
+```json
+{
+  "teacherId": "T9876",
+  "ratings": [4.2, 4.5, 4.8]
+}
+```
+
+---
+
+#### `GET /api/v1/reports/teachers/{teacherId}/average`
+**Path Param:** `teacherId` – ID del docente (proveniente dal microservizio Gestione Utenti)
+Media delle valutazioni.
+
+**Esempio Response**
+```json
+{
+  "teacherId": "T9876",
+  "averageRating": 4.5
+}
+```
+
+---
+
+#### `GET /api/v1/reports/teachers/{teacherId}/feedback`
+**Path Param:** `teacherId` – ID del docente (proveniente dal microservizio Gestione Utenti)  
+Feedback testuali ricevuti.
+
+**Esempio Response**
+```json
+{
+  "teacherId": "T9876",
+  "feedbackList": [
+    "Ottima preparazione",
+    "Spiegazioni chiare"
+  ]
+}
+```
+
+---
+
+#### `GET /api/v1/reports/teachers/{teacherId}/performance-over-time`
+Andamento delle performance docenti nel tempo.
+
+**Query Params:**
+- `startDate`: Data di inizio (formato `YYYY-MM-DD`, opzionale)
+- `endDate`: Data di fine (formato `YYYY-MM-DD`, opzionale)
+- `format`: Formato di output (`json`, `csv`, `pdf`, default: `json`)
+
+**Esempio Response**
+```json
+{
+  "teacherId": "T9876",
+  "monthlyPerformance": {
+    "2024-09": 4.3,
+    "2024-10": 4.6
+  }
+}
+```
+
+---
+
+### 📊 Riepilogo Globale
+
+#### `GET /api/v1/reports/summary`
+**Nessun parametro richiesto.**
+Panoramica generale dell'intera piattaforma.
+
+**Esempio Response**
+```json
+{
+  "totalStudents": 300,
+  "averageGradeOverall": 26.1,
+  "topCourses": ["INF001", "RETI2024"]
+}
+```
+
+---
+
+## Gestione Errori
+
+| Codice | Descrizione                    |
+|--------|--------------------------------|
+| 400    | Parametri errati o assenti     |
+| 401    | Token non presente o invalido  |
+| 404    | Risorsa non trovata            |
+| 500    | Errore interno                 |
 
 ## 🔐 Sicurezza e Autenticazione
 
