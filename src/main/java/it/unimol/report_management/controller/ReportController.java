@@ -22,6 +22,9 @@ public class ReportController {
                                                 @RequestParam(required = false) String startDate,
                                                 @RequestParam(required = false) String endDate,
                                                 @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateStudentActivityPdf(studentId, startDate, endDate, format);
+        }
         return reportService.getStudentActivity(studentId, startDate, endDate, format);
     }
 
@@ -29,62 +32,101 @@ public class ReportController {
     @GetMapping("/students/{studentId}/grades")
     public ResponseEntity<?> getStudentGrades(@PathVariable String studentId,
                                               @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateStudentGradesPdf(studentId, format);
+        }
         return reportService.getStudentGrades(studentId, format);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     @GetMapping("/students/{studentId}/progress")
-    public ResponseEntity<?> getStudentProgress(@PathVariable String studentId) {
+    public ResponseEntity<?> getStudentProgress(@PathVariable String studentId,
+                                                @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateStudentProgressPdf(studentId);
+        }
         return reportService.getStudentProgress(studentId);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     @GetMapping("/students/{studentId}/average")
-    public ResponseEntity<?> getStudentAverage(@PathVariable String studentId) {
+    public ResponseEntity<?> getStudentAverage(@PathVariable String studentId,
+                                               @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateStudentAveragePdf(studentId);
+        }
         return reportService.getStudentAverage(studentId);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     @GetMapping("/students/{studentId}/completion-rate")
-    public ResponseEntity<?> getStudentCompletionRate(@PathVariable String studentId) {
+    public ResponseEntity<?> getStudentCompletionRate(@PathVariable String studentId,
+                                                      @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateStudentCompletionRatePdf(studentId);
+        }
         return reportService.getStudentCompletionRate(studentId);
     }
 
     // CORSO
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/courses/{courseId}/average")
-    public ResponseEntity<?> getCourseAverage(@PathVariable String courseId) {
+    public ResponseEntity<?> getCourseAverage(@PathVariable String courseId,
+                                              @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateCourseAveragePdf(courseId);
+        }
         return reportService.getCourseAverage(courseId);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/courses/{courseId}/distribution")
-    public ResponseEntity<?> getCourseGradeDistribution(@PathVariable String courseId) {
+    public ResponseEntity<?> getCourseGradeDistribution(@PathVariable String courseId,
+                                                        @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateCourseGradeDistributionPdf(courseId);
+        }
         return reportService.getCourseGradeDistribution(courseId);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/courses/{courseId}/completion-rate")
-    public ResponseEntity<?> getCourseCompletionRate(@PathVariable String courseId) {
+    public ResponseEntity<?> getCourseCompletionRate(@PathVariable String courseId,
+                                                     @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateCourseCompletionRatePdf(courseId);
+        }
         return reportService.getCourseCompletionRate(courseId);
     }
 
     // DOCENTE
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/teachers/{teacherId}/ratings")
-    public ResponseEntity<?> getTeacherRatings(@PathVariable String teacherId) {
+    public ResponseEntity<?> getTeacherRatings(@PathVariable String teacherId,
+                                               @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateTeacherRatingsPdf(teacherId);
+        }
         return reportService.getTeacherRatings(teacherId);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/teachers/{teacherId}/average")
-    public ResponseEntity<?> getTeacherAverage(@PathVariable String teacherId) {
+    public ResponseEntity<?> getTeacherAverage(@PathVariable String teacherId,
+                                               @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateTeacherAveragePdf(teacherId);
+        }
         return reportService.getTeacherAverage(teacherId);
     }
 
     @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
     @GetMapping("/teachers/{teacherId}/feedback")
-    public ResponseEntity<?> getTeacherFeedback(@PathVariable String teacherId) {
+    public ResponseEntity<?> getTeacherFeedback(@PathVariable String teacherId,
+                                                @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateTeacherFeedbackPdf(teacherId);
+        }
         return reportService.getTeacherFeedback(teacherId);
     }
 
@@ -95,6 +137,9 @@ public class ReportController {
                                                            @RequestParam(required = false) String startDate,
                                                            @RequestParam(required = false) String endDate,
                                                            @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateStudentPerformanceOverTimePdf(studentId, startDate, endDate, format);
+        }
         return reportService.getStudentPerformanceOverTime(studentId, startDate, endDate, format);
     }
 
@@ -104,6 +149,9 @@ public class ReportController {
                                                           @RequestParam(required = false) String startDate,
                                                           @RequestParam(required = false) String endDate,
                                                           @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateCoursePerformanceOverTimePdf(courseId, startDate, endDate, format);
+        }
         return reportService.getCoursePerformanceOverTime(courseId, startDate, endDate, format);
     }
 
@@ -113,13 +161,19 @@ public class ReportController {
                                                            @RequestParam(required = false) String startDate,
                                                            @RequestParam(required = false) String endDate,
                                                            @RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateTeacherPerformanceOverTimePdf(teacherId, startDate, endDate, format);
+        }
         return reportService.getTeacherPerformanceOverTime(teacherId, startDate, endDate, format);
     }
 
     // GLOBALE
     @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/summary")
-    public ResponseEntity<?> getGlobalSummary() {
+    public ResponseEntity<?> getGlobalSummary(@RequestParam(defaultValue = "json") String format) {
+        if ("pdf".equalsIgnoreCase(format)) {
+            return reportService.generateGlobalSummaryPdf();
+        }
         return reportService.getGlobalSummary();
     }
 }
