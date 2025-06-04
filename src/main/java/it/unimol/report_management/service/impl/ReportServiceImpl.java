@@ -1,10 +1,14 @@
+// INIZIO FILE: ReportServiceImpl.java
 package it.unimol.report_management.service.impl;
 
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.*;
 import it.unimol.report_management.client.*;
 import it.unimol.report_management.service.ReportService;
-import org.springframework.http.ResponseEntity;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Map;
 
 @Service
@@ -27,396 +31,265 @@ public class ReportServiceImpl implements ReportService {
         this.feedbackClient = feedbackClient;
     }
 
-    private ResponseEntity<?> mock(String description) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", description));
-    }
+    // ================================
+    // ========== METODI PDF ==========
+    // ================================
 
-    public ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format) {
-        // TODO: usare compitiClient e presenzeClient
-        return mock("Student Activity Report for " + studentId);
-    }
-
-    public ResponseEntity<?> getStudentGrades(String studentId, String format) {
-        // TODO: usare esamiClient per voti dello studente
-        return mock("Student Grades Report for " + studentId);
-    }
-
-    public ResponseEntity<?> getStudentProgress(String studentId) {
-        // TODO: calcolare da presenzeClient
-        return mock("Student Progress");
-    }
-
-    public ResponseEntity<?> getStudentAverage(String studentId) {
-        // TODO: media da esamiClient
-        return mock("Student Average");
-    }
-
-    public ResponseEntity<?> getStudentCompletionRate(String studentId) {
-        // TODO: completamento compiti o esami
-        return mock("Student Completion Rate");
-    }
-
-    public ResponseEntity<?> getCourseAverage(String courseId) {
-        // TODO: media voti studenti corso da esamiClient
-        return mock("Course Average");
-    }
-
-    public ResponseEntity<?> getCourseGradeDistribution(String courseId) {
-        // TODO: istogramma voti da esamiClient
-        return mock("Course Grade Distribution");
-    }
-
-    public ResponseEntity<?> getCourseCompletionRate(String courseId) {
-        // TODO: % studenti che hanno completato corso
-        return mock("Course Completion Rate");
-    }
-
-    public ResponseEntity<?> getTeacherRatings(String teacherId) {
-        // TODO: media feedback da feedbackClient
-        return mock("Teacher Ratings");
-    }
-
-    public ResponseEntity<?> getTeacherAverage(String teacherId) {
-        // TODO: media dei voti assegnati dal docente
-        return mock("Teacher Average");
-    }
-
-    public ResponseEntity<?> getTeacherFeedback(String teacherId) {
-        // TODO: lista feedback da feedbackClient
-        return mock("Teacher Feedback");
-    }
-
-    public ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format) {
-        // TODO: andamento voti + compiti in timeline
-        return mock("Student Performance Over Time");
-    }
-
-    public ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format) {
-        // TODO: performance media studenti nel tempo
-        return mock("Course Performance Over Time");
-    }
-
-    public ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format) {
-        // TODO: performance valutazioni nel tempo
-        return mock("Teacher Performance Over Time");
-    }
-
-    public ResponseEntity<?> getGlobalSummary() {
-        // TODO: aggregazione di più metriche
-        return mock("Global Summary Report");
-    }
     @Override
     public ResponseEntity<byte[]> generateStudentActivityPdf(String studentId, String startDate, String endDate, String format) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: StudentActivity"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: studentId, startDate, endDate, format"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report StudentActivity..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=studentactivity.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per StudentActivity", e);
-        }
+        return generateBasicPdf("Attività Studente", studentId, startDate, endDate, new String[][]{
+                {"Lezione: Reti", "2025-03-15", "Presente"},
+                {"Esame: Basi di Dati", "2025-03-18", "Superato (28)"},
+                {"Compito: Microservizi", "2025-03-22", "Consegnato"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateStudentGradesPdf(String studentId, String format) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: StudentGrades"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: studentId, format"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report StudentGrades..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=studentgrades.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per StudentGrades", e);
-        }
+        return generateBasicPdf("Voti Studente", studentId, null, null, new String[][]{
+                {"Basi di Dati", "2025-02-10", "30L"},
+                {"Sistemi Operativi", "2025-03-01", "28"},
+                {"Reti di Calcolatori", "2025-04-12", "27"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateStudentProgressPdf(String studentId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: StudentProgress"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: studentId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report StudentProgress..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=studentprogress.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per StudentProgress", e);
-        }
+        return generateBasicPdf("Progresso Studente", studentId, null, null, new String[][]{
+                {"Settimana 1", "2025-02-01", "80%"},
+                {"Settimana 2", "2025-02-08", "85%"},
+                {"Settimana 3", "2025-02-15", "90%"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateStudentAveragePdf(String studentId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: StudentAverage"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: studentId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report StudentAverage..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=studentaverage.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per StudentAverage", e);
-        }
+        return generateBasicPdf("Media Voti Studente", studentId, null, null, new String[][]{
+                {"Totale Esami", "—", "5"},
+                {"Media Aritmetica", "—", "27.8"},
+                {"Media Ponderata", "—", "28.1"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateStudentCompletionRatePdf(String studentId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: StudentCompletionRate"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: studentId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report StudentCompletionRate..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=studentcompletionrate.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per StudentCompletionRate", e);
-        }
+        return generateBasicPdf("Completamento Studente", studentId, null, null, new String[][]{
+                {"Compiti Totali", "—", "10"},
+                {"Compiti Completati", "—", "9"},
+                {"Completamento", "—", "90%"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateCourseAveragePdf(String courseId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: CourseAverage"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: courseId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report CourseAverage..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=courseaverage.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per CourseAverage", e);
-        }
+        return generateBasicPdf("Media Corso", courseId, null, null, new String[][]{
+                {"Esami Totali", "—", "30"},
+                {"Media Corso", "—", "26.4"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateCourseGradeDistributionPdf(String courseId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: CourseGradeDistribution"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: courseId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report CourseGradeDistribution..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=coursegradedistribution.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per CourseGradeDistribution", e);
-        }
+        return generateBasicPdf("Distribuzione Voti Corso", courseId, null, null, new String[][]{
+                {"18–21", "10", "33%"},
+                {"22–25", "12", "40%"},
+                {"26–30", "8", "27%"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateCourseCompletionRatePdf(String courseId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: CourseCompletionRate"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: courseId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report CourseCompletionRate..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=coursecompletionrate.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per CourseCompletionRate", e);
-        }
+        return generateBasicPdf("Completamento Corso", courseId, null, null, new String[][]{
+                {"Studenti Iscritti", "—", "50"},
+                {"Studenti Completato", "—", "45"},
+                {"Tasso", "—", "90%"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateTeacherRatingsPdf(String teacherId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: TeacherRatings"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: teacherId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report TeacherRatings..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=teacherratings.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per TeacherRatings", e);
-        }
+        return generateBasicPdf("Valutazioni Docente", teacherId, null, null, new String[][]{
+                {"Lezione 1", "2025-03-10", "4.5/5"},
+                {"Lezione 2", "2025-03-17", "4.7/5"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateTeacherAveragePdf(String teacherId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: TeacherAverage"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: teacherId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report TeacherAverage..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=teacheraverage.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per TeacherAverage", e);
-        }
+        return generateBasicPdf("Media Docente", teacherId, null, null, new String[][]{
+                {"Totale Valutazioni", "—", "60"},
+                {"Media", "—", "4.6/5"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateTeacherFeedbackPdf(String teacherId) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: TeacherFeedback"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: teacherId"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report TeacherFeedback..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=teacherfeedback.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per TeacherFeedback", e);
-        }
+        return generateBasicPdf("Feedback Docente", teacherId, null, null, new String[][]{
+                {"Studente 1", "2025-03-21", "Molto chiaro"},
+                {"Studente 2", "2025-03-25", "Coinvolgente e preciso"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateStudentPerformanceOverTimePdf(String studentId, String startDate, String endDate, String format) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: StudentPerformanceOverTime"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: studentId, startDate, endDate, format"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report StudentPerformanceOverTime..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=studentperformanceovertime.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per StudentPerformanceOverTime", e);
-        }
+        return generateBasicPdf("Performance Studente nel Tempo", studentId, startDate, endDate, new String[][]{
+                {"Gennaio", "—", "Media 27"},
+                {"Febbraio", "—", "Media 28"},
+                {"Marzo", "—", "Media 29"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateCoursePerformanceOverTimePdf(String courseId, String startDate, String endDate, String format) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: CoursePerformanceOverTime"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: courseId, startDate, endDate, format"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report CoursePerformanceOverTime..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=courseperformanceovertime.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per CoursePerformanceOverTime", e);
-        }
+        return generateBasicPdf("Performance Corso nel Tempo", courseId, startDate, endDate, new String[][]{
+                {"2024", "—", "Media 25"},
+                {"2025", "—", "Media 27"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateTeacherPerformanceOverTimePdf(String teacherId, String startDate, String endDate, String format) {
-        try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
-            document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: TeacherPerformanceOverTime"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: teacherId, startDate, endDate, format"));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report TeacherPerformanceOverTime..."));
-            document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=teacherperformanceovertime.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per TeacherPerformanceOverTime", e);
-        }
+        return generateBasicPdf("Performance Docente nel Tempo", teacherId, startDate, endDate, new String[][]{
+                {"2024", "—", "Valutazione 4.3"},
+                {"2025", "—", "Valutazione 4.7"}
+        });
     }
-
 
     @Override
     public ResponseEntity<byte[]> generateGlobalSummaryPdf() {
+        return generateBasicPdf("Report Sommario Globale", "Sistema", null, null, new String[][]{
+                {"Studenti Attivi", "—", "120"},
+                {"Media Globale", "—", "26.8"},
+                {"Feedback Positivi", "—", "92%"}
+        });
+    }
+
+    private ResponseEntity<byte[]> generateBasicPdf(String title, String id, String startDate, String endDate, String[][] rows) {
         try {
-            com.lowagie.text.Document document = new com.lowagie.text.Document();
-            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
-            com.lowagie.text.pdf.PdfWriter.getInstance(document, out);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            Document document = new Document();
+            PdfWriter.getInstance(document, baos);
             document.open();
-            document.add(new com.lowagie.text.Paragraph("Report: GlobalSummary"));
-            document.add(new com.lowagie.text.Paragraph("Parametri: "));
-            document.add(new com.lowagie.text.Paragraph("Contenuto simulato del report GlobalSummary..."));
+
+            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD);
+            Font headerFont = new Font(Font.HELVETICA, 12, Font.BOLD);
+            Font cellFont = new Font(Font.HELVETICA, 11);
+
+            Paragraph titleP = new Paragraph("Report: " + title, titleFont);
+            titleP.setAlignment(Element.ALIGN_CENTER);
+            titleP.setSpacingAfter(20f);
+            document.add(titleP);
+
+            document.add(new Paragraph("ID: " + id));
+            if (startDate != null && endDate != null) {
+                document.add(new Paragraph("Periodo: " + startDate + " → " + endDate));
+            }
+            document.add(new Paragraph(" "));
+
+            PdfPTable table = new PdfPTable(3);
+            table.setWidthPercentage(100);
+            table.setWidths(new float[]{3, 2, 2});
+            table.addCell(new PdfPCell(new Phrase("Descrizione", headerFont)));
+            table.addCell(new PdfPCell(new Phrase("Data", headerFont)));
+            table.addCell(new PdfPCell(new Phrase("Dettagli", headerFont)));
+
+            for (String[] row : rows) {
+                for (String cell : row) {
+                    table.addCell(new PdfPCell(new Phrase(cell, cellFont)));
+                }
+            }
+
+            document.add(table);
             document.close();
-            return ResponseEntity.ok()
-                    .header("Content-Disposition", "attachment; filename=globalsummary.pdf")
-                    .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
-                    .body(out.toByteArray());
+
+            byte[] pdfBytes = baos.toByteArray();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_PDF);
+            headers.setContentDispositionFormData("attachment", "report_" + title.replace(" ", "_").toLowerCase() + ".pdf");
+
+            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+
         } catch (Exception e) {
-            throw new RuntimeException("Errore nella generazione del PDF per GlobalSummary", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
+    // ================================
+    // ========== METODI JSON =========
+    // ================================
+
+    @Override
+    public ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Activity Report for " + studentId));
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentGrades(String studentId, String format) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Grades Report for " + studentId));
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentProgress(String studentId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Progress Report for " + studentId));
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentAverage(String studentId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Average Report for " + studentId));
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentCompletionRate(String studentId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Completion Rate Report for " + studentId));
+    }
+
+    @Override
+    public ResponseEntity<?> getCourseAverage(String courseId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Course Average Report for " + courseId));
+    }
+
+    @Override
+    public ResponseEntity<?> getCourseGradeDistribution(String courseId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Course Grade Distribution Report for " + courseId));
+    }
+
+    @Override
+    public ResponseEntity<?> getCourseCompletionRate(String courseId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Course Completion Rate Report for " + courseId));
+    }
+
+    @Override
+    public ResponseEntity<?> getTeacherRatings(String teacherId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Teacher Ratings Report for " + teacherId));
+    }
+
+    @Override
+    public ResponseEntity<?> getTeacherAverage(String teacherId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Teacher Average Report for " + teacherId));
+    }
+
+    @Override
+    public ResponseEntity<?> getTeacherFeedback(String teacherId) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Teacher Feedback Report for " + teacherId));
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Performance Over Time for " + studentId));
+    }
+
+    @Override
+    public ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Course Performance Over Time for " + courseId));
+    }
+
+    @Override
+    public ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format) {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Teacher Performance Over Time for " + teacherId));
+    }
+
+    @Override
+    public ResponseEntity<?> getGlobalSummary() {
+        return ResponseEntity.ok(Map.of("mock", true, "description", "Global Summary Report"));
+    }
 }
