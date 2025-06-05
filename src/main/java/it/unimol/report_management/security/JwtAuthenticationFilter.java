@@ -53,6 +53,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = authHeader.substring(7);
         try {
+            System.out.println("tkn: " + token);
             Claims claims = Jwts.parserBuilder()
                     .setSigningKey(publicKey)
                     .build()
@@ -80,10 +81,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             var auth = new UsernamePasswordAuthenticationToken(username, null, authorities);
             auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(auth);
-            System.out.println("✅ Authentication set for user: " + username);
 
         } catch (Exception e) {
-            System.out.println("❌ JWT validation failed: " + e.getMessage());
+            e.printStackTrace();
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "Token JWT non valido");
             return;
         }
