@@ -1,295 +1,206 @@
-// INIZIO FILE: ReportServiceImpl.java
 package it.unimol.report_management.service.impl;
 
 import com.lowagie.text.*;
-import com.lowagie.text.pdf.*;
-import it.unimol.report_management.client.*;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import it.unimol.report_management.model.ReportCache;
+import it.unimol.report_management.repository.ReportCacheRepository;
 import it.unimol.report_management.service.ReportService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Map;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.*;
 
 @Service
 public class ReportServiceImpl implements ReportService {
+    private static final Logger logger = LoggerFactory.getLogger(ReportServiceImpl.class);
+    private final ReportCacheRepository cacheRepo;
 
-    private final UtentiClient utentiClient;
-    private final EsamiClient esamiClient;
-    private final CorsiClient corsiClient;
-    private final CompitiClient compitiClient;
-    private final PresenzeClient presenzeClient;
-    private final FeedbackClient feedbackClient;
-
-    public ReportServiceImpl(UtentiClient utentiClient, EsamiClient esamiClient, CorsiClient corsiClient,
-                             CompitiClient compitiClient, PresenzeClient presenzeClient, FeedbackClient feedbackClient) {
-        this.utentiClient = utentiClient;
-        this.esamiClient = esamiClient;
-        this.corsiClient = corsiClient;
-        this.compitiClient = compitiClient;
-        this.presenzeClient = presenzeClient;
-        this.feedbackClient = feedbackClient;
+    public ReportServiceImpl(ReportCacheRepository cacheRepo) {
+        this.cacheRepo = cacheRepo;
     }
 
-    // ================================
-    // ========== METODI PDF ==========
-    // ================================
-
+    // ========== PDF ==========
     @Override
     public ResponseEntity<byte[]> generateStudentActivityPdf(String studentId, String startDate, String endDate, String format) {
-        return generateBasicPdf("Attività Studente", studentId, startDate, endDate, new String[][]{
-                {"Lezione: Reti", "2025-03-15", "Presente"},
-                {"Esame: Basi di Dati", "2025-03-18", "Superato (28)"},
-                {"Compito: Microservizi", "2025-03-22", "Consegnato"}
-        });
+        String params = toParams(startDate, endDate);
+        return getOrGeneratePdf("student_activity", studentId, params,
+                new String[][]{{"Lezione","Data","Stato"},{"Reti","2025-03-15","Presente"}},
+                "Attività Studente", startDate, endDate);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateStudentGradesPdf(String studentId, String format) {
-        return generateBasicPdf("Voti Studente", studentId, null, null, new String[][]{
-                {"Basi di Dati", "2025-02-10", "30L"},
-                {"Sistemi Operativi", "2025-03-01", "28"},
-                {"Reti di Calcolatori", "2025-04-12", "27"}
-        });
+    @Override public ResponseEntity<byte[]> generateStudentGradesPdf(String studentId, String format) {
+        return getOrGeneratePdf("student_grades", studentId, "", new String[][]{{"Corso","Voto"},{"Basi di Dati","28"}},"Voti Studente", null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateStudentProgressPdf(String studentId) {
-        return generateBasicPdf("Progresso Studente", studentId, null, null, new String[][]{
-                {"Settimana 1", "2025-02-01", "80%"},
-                {"Settimana 2", "2025-02-08", "85%"},
-                {"Settimana 3", "2025-02-15", "90%"}
-        });
+    @Override public ResponseEntity<byte[]> generateStudentProgressPdf(String studentId) {
+        return getOrGeneratePdf("student_progress", studentId, "", new String[][]{{"CFU Completati","120"}},"Progresso Studente",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateStudentAveragePdf(String studentId) {
-        return generateBasicPdf("Media Voti Studente", studentId, null, null, new String[][]{
-                {"Totale Esami", "—", "5"},
-                {"Media Aritmetica", "—", "27.8"},
-                {"Media Ponderata", "—", "28.1"}
-        });
+    @Override public ResponseEntity<byte[]> generateStudentAveragePdf(String studentId) {
+        return getOrGeneratePdf("student_average", studentId, "", new String[][]{{"Media","27.5"}},"Media Studente",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateStudentCompletionRatePdf(String studentId) {
-        return generateBasicPdf("Completamento Studente", studentId, null, null, new String[][]{
-                {"Compiti Totali", "—", "10"},
-                {"Compiti Completati", "—", "9"},
-                {"Completamento", "—", "90%"}
-        });
+    @Override public ResponseEntity<byte[]> generateStudentCompletionRatePdf(String studentId) {
+        return getOrGeneratePdf("student_completion_rate", studentId, "", new String[][]{{"Completamento","92%"}},"Completamento Studente",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateCourseAveragePdf(String courseId) {
-        return generateBasicPdf("Media Corso", courseId, null, null, new String[][]{
-                {"Esami Totali", "—", "30"},
-                {"Media Corso", "—", "26.4"}
-        });
+    @Override public ResponseEntity<byte[]> generateCourseAveragePdf(String courseId) {
+        return getOrGeneratePdf("course_average", courseId, "", new String[][]{{"Media","26.7"}},"Media Corso",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateCourseGradeDistributionPdf(String courseId) {
-        return generateBasicPdf("Distribuzione Voti Corso", courseId, null, null, new String[][]{
-                {"18–21", "10", "33%"},
-                {"22–25", "12", "40%"},
-                {"26–30", "8", "27%"}
-        });
+    @Override public ResponseEntity<byte[]> generateCourseGradeDistributionPdf(String courseId) {
+        return getOrGeneratePdf("course_grade_distribution", courseId, "", new String[][]{{"18-20","5"}},"Distribuzione Corso",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateCourseCompletionRatePdf(String courseId) {
-        return generateBasicPdf("Completamento Corso", courseId, null, null, new String[][]{
-                {"Studenti Iscritti", "—", "50"},
-                {"Studenti Completato", "—", "45"},
-                {"Tasso", "—", "90%"}
-        });
+    @Override public ResponseEntity<byte[]> generateCourseCompletionRatePdf(String courseId) {
+        return getOrGeneratePdf("course_completion_rate", courseId, "", new String[][]{{"Completamento","85%"}},"Completamento Corso",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateTeacherRatingsPdf(String teacherId) {
-        return generateBasicPdf("Valutazioni Docente", teacherId, null, null, new String[][]{
-                {"Lezione 1", "2025-03-10", "4.5/5"},
-                {"Lezione 2", "2025-03-17", "4.7/5"}
-        });
+    @Override public ResponseEntity<byte[]> generateTeacherRatingsPdf(String teacherId) {
+        return getOrGeneratePdf("teacher_ratings", teacherId, "", new String[][]{{"Studente","Voto"}},"Valutazioni Docente",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateTeacherAveragePdf(String teacherId) {
-        return generateBasicPdf("Media Docente", teacherId, null, null, new String[][]{
-                {"Totale Valutazioni", "—", "60"},
-                {"Media", "—", "4.6/5"}
-        });
+    @Override public ResponseEntity<byte[]> generateTeacherAveragePdf(String teacherId) {
+        return getOrGeneratePdf("teacher_average", teacherId, "", new String[][]{{"Media","28.1"}},"Media Docente",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateTeacherFeedbackPdf(String teacherId) {
-        return generateBasicPdf("Feedback Docente", teacherId, null, null, new String[][]{
-                {"Studente 1", "2025-03-21", "Molto chiaro"},
-                {"Studente 2", "2025-03-25", "Coinvolgente e preciso"}
-        });
+    @Override public ResponseEntity<byte[]> generateTeacherFeedbackPdf(String teacherId) {
+        return getOrGeneratePdf("teacher_feedback", teacherId, "", new String[][]{{"Studente","Feedback"}},"Feedback Docente",null,null);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateStudentPerformanceOverTimePdf(String studentId, String startDate, String endDate, String format) {
-        return generateBasicPdf("Performance Studente nel Tempo", studentId, startDate, endDate, new String[][]{
-                {"Gennaio", "—", "Media 27"},
-                {"Febbraio", "—", "Media 28"},
-                {"Marzo", "—", "Media 29"}
-        });
+    @Override public ResponseEntity<byte[]> generateStudentPerformanceOverTimePdf(String studentId, String startDate, String endDate, String format) {
+        return getOrGeneratePdf("student_performance_over_time", studentId, toParams(startDate,endDate),
+                new String[][]{{"2024-09","26"}},"Performance Studente",startDate,endDate);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateCoursePerformanceOverTimePdf(String courseId, String startDate, String endDate, String format) {
-        return generateBasicPdf("Performance Corso nel Tempo", courseId, startDate, endDate, new String[][]{
-                {"2024", "—", "Media 25"},
-                {"2025", "—", "Media 27"}
-        });
+    @Override public ResponseEntity<byte[]> generateCoursePerformanceOverTimePdf(String courseId, String startDate, String endDate, String format) {
+        return getOrGeneratePdf("course_performance_over_time", courseId, toParams(startDate,endDate), new String[][]{{"2024-10","25"}},"Performance Corso",startDate,endDate);
     }
-
-    @Override
-    public ResponseEntity<byte[]> generateTeacherPerformanceOverTimePdf(String teacherId, String startDate, String endDate, String format) {
-        return generateBasicPdf("Performance Docente nel Tempo", teacherId, startDate, endDate, new String[][]{
-                {"2024", "—", "Valutazione 4.3"},
-                {"2025", "—", "Valutazione 4.7"}
-        });
+    @Override public ResponseEntity<byte[]> generateTeacherPerformanceOverTimePdf(String teacherId, String startDate, String endDate, String format) {
+        return getOrGeneratePdf("teacher_performance_over_time", teacherId, toParams(startDate,endDate), new String[][]{{"2024-10","28"}},"Performance Docente",startDate,endDate);
     }
-
     @Override
     public ResponseEntity<byte[]> generateGlobalSummaryPdf() {
-        return generateBasicPdf("Report Sommario Globale", "Sistema", null, null, new String[][]{
-                {"Studenti Attivi", "—", "120"},
-                {"Media Globale", "—", "26.8"},
-                {"Feedback Positivi", "—", "92%"}
-        });
+        String placeholder = "PDF non ancora implementato";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=global_summary.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(placeholder.getBytes(StandardCharsets.UTF_8));
     }
 
-    private ResponseEntity<byte[]> generateBasicPdf(String title, String id, String startDate, String endDate, String[][] rows) {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            Document document = new Document();
-            PdfWriter.getInstance(document, baos);
-            document.open();
+    // ========== JSON ==========
+    @Override public ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format) {
+        return getOrGenerateJson("student_activity", studentId, toParams(startDate,endDate), Map.of("exams",5));
+    }
+    @Override public ResponseEntity<?> getStudentGrades(String studentId, String format) {
+        return getOrGenerateJson("student_grades", studentId, "", Map.of("grades", new int[]{28,30,27}));
+    }
+    @Override public ResponseEntity<?> getStudentProgress(String studentId) {
+        return getOrGenerateJson("student_progress", studentId, "", Map.of("progress",82.5));
+    }
+    @Override public ResponseEntity<?> getStudentAverage(String studentId) {
+        return getOrGenerateJson("student_average", studentId, "", Map.of("average",27.3));
+    }
+    @Override public ResponseEntity<?> getStudentCompletionRate(String studentId) {
+        return getOrGenerateJson("student_completion_rate", studentId, "", Map.of("rate",0.89));
+    }
+    @Override public ResponseEntity<?> getCourseAverage(String courseId) {
+        return getOrGenerateJson("course_average", courseId, "", Map.of("average",26.7));
+    }
+    @Override public ResponseEntity<?> getCourseGradeDistribution(String courseId) {
+        return getOrGenerateJson("course_grade_distribution", courseId, "", Map.of("dist", Map.of("18-20",5)));
+    }
+    @Override public ResponseEntity<?> getCourseCompletionRate(String courseId) {
+        return getOrGenerateJson("course_completion_rate", courseId, "", Map.of("rate",0.81));
+    }
+    @Override public ResponseEntity<?> getTeacherRatings(String teacherId) {
+        return getOrGenerateJson("teacher_ratings", teacherId, "", Map.of("ratings", new int[]{5,4,3}));
+    }
+    @Override public ResponseEntity<?> getTeacherAverage(String teacherId) {
+        return getOrGenerateJson("teacher_average", teacherId, "", Map.of("average",28.1));
+    }
+    @Override public ResponseEntity<?> getTeacherFeedback(String teacherId) {
+        return getOrGenerateJson("teacher_feedback", teacherId, "", Map.of("feedback", new String[]{"Ottimo","Chiaro"}));
+    }
+    @Override public ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format) {
+        return getOrGenerateJson("student_performance_over_time", studentId, toParams(startDate,endDate), Map.of("monthly", Map.of("2024-09",26)));
+    }
+    @Override public ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format) {
+        return getOrGenerateJson("course_performance_over_time", courseId, toParams(startDate,endDate), Map.of("monthly", Map.of("2024-10",25)));
+    }
+    @Override public ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format) {
+        return getOrGenerateJson("teacher_performance_over_time", teacherId, toParams(startDate,endDate), Map.of("monthly", Map.of("2024-10",28)));
+    }
+    @Override
+    public ResponseEntity<?> getGlobalSummary() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalReports", 0);
+        result.put("generatedAt", System.currentTimeMillis());
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+    }
 
-            Font titleFont = new Font(Font.HELVETICA, 18, Font.BOLD);
-            Font headerFont = new Font(Font.HELVETICA, 12, Font.BOLD);
-            Font cellFont = new Font(Font.HELVETICA, 11);
+    // ========== NUOVI METODI PER INTERFACCIA ==========
+    @Override
+    public Map<String, Object> getGlobalSummaryMap() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("totalReports", 0);
+        result.put("generatedAt", System.currentTimeMillis());
+        return result;
+    }
 
-            Paragraph titleP = new Paragraph("Report: " + title, titleFont);
-            titleP.setAlignment(Element.ALIGN_CENTER);
-            titleP.setSpacingAfter(20f);
-            document.add(titleP);
+    @Override
+    public byte[] generateGlobalSummaryPdfRaw() {
+        String placeholder = "PDF non ancora implementato";
+        return placeholder.getBytes(StandardCharsets.UTF_8);
+    }
 
-            document.add(new Paragraph("ID: " + id));
-            if (startDate != null && endDate != null) {
-                document.add(new Paragraph("Periodo: " + startDate + " → " + endDate));
-            }
-            document.add(new Paragraph(" "));
+    // ===== utils =====
+    private <T> ResponseEntity<T> getOrGenerateJson(
+            String type, String id, String params, T body) {
+        String fmt = "json";
+        Optional<ReportCache> c = cacheRepo.findByReportTypeAndTargetIdAndParametersAndFormat(type,id,params,fmt);
+        if (c.isPresent()) return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body((T)c.get().getReportDataAsJson());
+        cacheRepo.save(ReportCache.builder().reportType(type).targetId(id).parameters(params).format(fmt)
+                .reportData(body.toString().getBytes(StandardCharsets.UTF_8)).generatedAt(LocalDateTime.now()).build());
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(body);
+    }
 
-            PdfPTable table = new PdfPTable(3);
-            table.setWidthPercentage(100);
-            table.setWidths(new float[]{3, 2, 2});
-            table.addCell(new PdfPCell(new Phrase("Descrizione", headerFont)));
-            table.addCell(new PdfPCell(new Phrase("Data", headerFont)));
-            table.addCell(new PdfPCell(new Phrase("Dettagli", headerFont)));
+    private ResponseEntity<byte[]> getOrGeneratePdf(
+            String type, String id, String params, String[][] rows,
+            String title, String start, String end) {
+        String fmt = "pdf";
+        Optional<ReportCache> c = cacheRepo.findByReportTypeAndTargetIdAndParametersAndFormat(type,id,params,fmt);
+        if (c.isPresent()) {
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=report.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(c.get().getReportData());
+        }
+        byte[] pdf = buildPdf(title,id,start,end,rows);
+        cacheRepo.save(ReportCache.builder().reportType(type).targetId(id).parameters(params).format(fmt)
+                .reportData(pdf).generatedAt(LocalDateTime.now()).build());
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=report.pdf")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
 
-            for (String[] row : rows) {
-                for (String cell : row) {
-                    table.addCell(new PdfPCell(new Phrase(cell, cellFont)));
-                }
-            }
-
-            document.add(table);
-            document.close();
-
-            byte[] pdfBytes = baos.toByteArray();
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", "report_" + title.replace(" ", "_").toLowerCase() + ".pdf");
-
-            return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
-
+    private byte[] buildPdf(String title, String id, String start, String end, String[][] data) {
+        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Document doc = new Document();
+            PdfWriter.getInstance(doc,out);
+            doc.open();
+            doc.add(new Paragraph(title));
+            doc.add(new Paragraph("ID: "+id));
+            if (start!=null) doc.add(new Paragraph("Start: "+start));
+            if (end!=null) doc.add(new Paragraph("End: "+end));
+            doc.add(Chunk.NEWLINE);
+            PdfPTable table = new PdfPTable(data[0].length);
+            Arrays.stream(data).forEach(r-> Arrays.stream(r).forEach(table::addCell));
+            doc.add(table);
+            doc.close();
+            return out.toByteArray();
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+            logger.error("PDF generation failed",e);
+            return new byte[0];
         }
     }
 
-    // ================================
-    // ========== METODI JSON =========
-    // ================================
-
-    @Override
-    public ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Activity Report for " + studentId));
-    }
-
-    @Override
-    public ResponseEntity<?> getStudentGrades(String studentId, String format) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Grades Report for " + studentId));
-    }
-
-    @Override
-    public ResponseEntity<?> getStudentProgress(String studentId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Progress Report for " + studentId));
-    }
-
-    @Override
-    public ResponseEntity<?> getStudentAverage(String studentId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Average Report for " + studentId));
-    }
-
-    @Override
-    public ResponseEntity<?> getStudentCompletionRate(String studentId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Completion Rate Report for " + studentId));
-    }
-
-    @Override
-    public ResponseEntity<?> getCourseAverage(String courseId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Course Average Report for " + courseId));
-    }
-
-    @Override
-    public ResponseEntity<?> getCourseGradeDistribution(String courseId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Course Grade Distribution Report for " + courseId));
-    }
-
-    @Override
-    public ResponseEntity<?> getCourseCompletionRate(String courseId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Course Completion Rate Report for " + courseId));
-    }
-
-    @Override
-    public ResponseEntity<?> getTeacherRatings(String teacherId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Teacher Ratings Report for " + teacherId));
-    }
-
-    @Override
-    public ResponseEntity<?> getTeacherAverage(String teacherId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Teacher Average Report for " + teacherId));
-    }
-
-    @Override
-    public ResponseEntity<?> getTeacherFeedback(String teacherId) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Teacher Feedback Report for " + teacherId));
-    }
-
-    @Override
-    public ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Student Performance Over Time for " + studentId));
-    }
-
-    @Override
-    public ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Course Performance Over Time for " + courseId));
-    }
-
-    @Override
-    public ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format) {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Teacher Performance Over Time for " + teacherId));
-    }
-
-    @Override
-    public ResponseEntity<?> getGlobalSummary() {
-        return ResponseEntity.ok(Map.of("mock", true, "description", "Global Summary Report"));
+    private String toParams(String s, String e) {
+        return String.format("{\"start\":\"%s\",\"end\":\"%s\"}", s,e);
     }
 }
