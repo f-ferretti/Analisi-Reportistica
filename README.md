@@ -4,6 +4,28 @@
 
 Il microservizio **Analisi e Reportistica** è responsabile della generazione di report di base sull'attività della piattaforma universitaria. Fornisce informazioni aggregate e analisi dei dati accademici per supportare decisioni gestionali e monitorare le performance di studenti, corsi e docenti.
 
+## Installazione e Avvio Locale
+
+## Architettura del Sistema
+
+### Tecnologie Utilizzate
+
+- **Java 17**
+- **Spring Boot 3.2.5**
+- **Spring Data JPA**
+- **PostgreSQL**
+- **Spring Security / JWT**
+- **Swagger/OpenAPI (springdoc-openapi 2.3.0)**
+- **Lombok 1.18.30**
+- **OpenPDF 1.3.30**
+
+### Pattern Architetturali
+
+- Microservizi Architecture
+- Repository Pattern
+- DTO Pattern
+- Service Layer
+
 ## API Endpoints
 
 ### Studenti
@@ -339,24 +361,16 @@ public class ReportRequestDto {
     private String format;
 }
 ```
+---
 
-## Architettura del Sistema
+## Caching dei Report
 
-### Tecnologie Utilizzate
+Il microservizio implementa una cache persistente dei report generati, tramite la classe `ReportCache` e il repository associato.  
+Quando viene richiesta la generazione di un report, viene prima verificata la presenza di una versione già disponibile in cache.  
+Se esistente, il report viene restituito immediatamente, altrimenti viene generato, memorizzato e poi restituito.  
+Questo migliora le performance e riduce il carico sui dati di origine.
 
-- **Spring Boot**
-- **Spring Data JPA**
-- **PostgreSQL**
-- **RabbitMQ**
-- **REST API**
-- **Maven**
-
-### Pattern Architetturali
-
-- Microservizi Architecture
-- Repository Pattern
-- DTO Pattern
-- Service Layer
+---
 
 ## Integrazione con Altri Microservizi
 
@@ -366,3 +380,19 @@ public class ReportRequestDto {
 - **Gestione Compiti**
 - **Gestione Presenze**
 - **Valutazione e Feedback**
+
+### Prerequisiti
+- Java 17
+- Maven 3.8+
+- PostgreSQL (con database configurato)
+
+### Avvio rapido
+
+```sh
+git clone https://github.com/f-ferretti/Analisi-Reportistica.git
+cd Analisi-Reportistica
+mvn clean package
+java -jar target/analisi-reportistica-*.jar
+```
+
+Configura la connessione a PostgreSQL nel file `application.yml` o tramite variabili d’ambiente.
