@@ -4,8 +4,6 @@
 
 Il microservizio **Analisi e Reportistica** è responsabile della generazione di report di base sull'attività della piattaforma universitaria. Fornisce informazioni aggregate e analisi dei dati accademici per supportare decisioni gestionali e monitorare le performance di studenti, corsi e docenti.
 
-## Installazione e Avvio Locale
-
 ## Architettura del Sistema
 
 ### Tecnologie Utilizzate
@@ -380,6 +378,8 @@ Questo migliora le performance e riduce il carico sui dati di origine.
 - **Gestione Compiti**
 - **Gestione Presenze**
 - **Valutazione e Feedback**
+
+## Installazione e Avvio Locale
 
 ### Prerequisiti
 - Java 17
