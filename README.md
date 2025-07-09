@@ -1,28 +1,68 @@
-# Microservizio Analisi e Reportistica
+# Microservizio Report Management
 
-## Descrizione del Progetto
+Questo progetto è un microservizio Java basato su Spring Boot che espone API REST per la generazione di report **docenti**, **studenti** e **corsi** in formato JSON o PDF. Supporta autenticazione JWT, persistenza su PostgreSQL e generazione PDF con iText.
 
-Il microservizio **Analisi e Reportistica** è responsabile della generazione di report di base sull'attività della piattaforma universitaria. Fornisce informazioni aggregate e analisi dei dati accademici per supportare decisioni gestionali e monitorare le performance di studenti, corsi e docenti.
+---
 
-## Architettura del Sistema
-
-### Tecnologie Utilizzate
+## Tecnologie e Dipendenze
 
 - **Java 17**
 - **Spring Boot 3.2.5**
-- **Spring Data JPA**
-- **PostgreSQL**
-- **Spring Security / JWT**
-- **Swagger/OpenAPI (springdoc-openapi 2.3.0)**
+- **Spring Data JPA** per l’accesso a PostgreSQL
+- **PostgreSQL JDBC Driver** (runtime)
+- **Spring Security** + **JWT** per protezione endpoint
+- **iTextPDF 5.5.13.3** per generazione PDF
+- **springdoc-openapi 2.3.0** per Swagger UI
 - **Lombok 1.18.30**
-- **OpenPDF 1.3.30**
 
-### Pattern Architetturali
+---
 
-- Microservizi Architecture
-- Repository Pattern
-- DTO Pattern
-- Service Layer
+## Architettura dei Pacchetti
+
+```
+src/main/java/it/unimol/report_management/
+├─ controller/         # REST controller con annotazioni OpenAPI in italiano
+├─ service/            # Interfaccia ReportService
+├─ service/impl/       # Implementazione con forwardRequest e creazione PDF
+├─ security/           # JwtAuthenticationFilter
+├─ config/             # SecurityConfig (SecurityFilterChain, CORS, JWT bean)
+├─ pdf/                # PdfGenerator (logo, header, footer, tabelle)
+└─ ReportManagementApplication.java  # classe main Spring Boot
+```
+
+---
+
+## Configurazione
+
+### application.yml
+
+```yaml
+spring:
+  datasource:
+    url: jdbc:postgresql://<HOST>:<PORT>/<DB_NAME>
+    driver-class-name: org.postgresql.Driver
+    username: <DB_USER>
+    password: <DB_PASS>
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+stub:
+  base-url: http://localhost:8000/api/v1/reports  # URL del Python stub
+server:
+  port: 8080
+```
+
+- Sostituire `<HOST>`, `<PORT>`, `<DB_NAME>`, `<DB_USER>` e `<DB_PASS>` con i propri valori.
+- `stub.base-url` punta al microservizio Python stub.
+
+### Chiave pubblica JWT
+
+- Posizionata in `src/main/resources/jwt/public_key.pem`
+- Usata da `TokenJWTService` per validare la firma.
+
+---
+
 
 ## API Endpoints
 
@@ -32,9 +72,9 @@ Il microservizio **Analisi e Reportistica** è responsabile della generazione di
 Restituisce attività di esami e compiti svolti.
 
 **Query Params:**
-- `startDate`: Data di inizio (formato `YYYY-MM-DD`, opzionale)
-- `endDate`: Data di fine (formato `YYYY-MM-DD`, opzionale)
-- `format`: Formato di output (`json`, `csv`, `pdf`, default: `json`)
+- `startDate`: Data di inizio (formato `YYYY-MM-DD`)
+- `endDate`: Data di fine (formato `YYYY-MM-DD`)
+- `format`: Formato di output (`json`, `pdf`, default: `json`)
 
 **Esempio Response**
 ```json
@@ -107,9 +147,9 @@ Percentuale di completamento degli esami o moduli.
 Andamento delle performance mensili.
 
 **Query Params:**
-- `startDate`: Data di inizio (formato `YYYY-MM-DD`, opzionale)
-- `endDate`: Data di fine (formato `YYYY-MM-DD`, opzionale)
-- `format`: Formato di output (`json`, `csv`, `pdf`, default: `json`)
+- `startDate`: Data di inizio (formato `YYYY-MM-DD`)
+- `endDate`: Data di fine (formato `YYYY-MM-DD`)
+- `format`: Formato di output (`json`, `pdf`, default: `json`)
 
 **Esempio Response**
 ```json
@@ -177,9 +217,9 @@ Percentuale di completamento del corso.
 Andamento delle performance nel tempo.
 
 **Query Params:**
-- `startDate`: Data di inizio (formato `YYYY-MM-DD`, opzionale)
-- `endDate`: Data di fine (formato `YYYY-MM-DD`, opzionale)
-- `format`: Formato di output (`json`, `csv`, `pdf`, default: `json`)
+- `startDate`: Data di inizio (formato `YYYY-MM-DD`)
+- `endDate`: Data di fine (formato `YYYY-MM-DD`)
+- `format`: Formato di output (`json`, `pdf`, default: `json`)
 
 **Esempio Response**
 ```json
@@ -245,9 +285,9 @@ Feedback testuali ricevuti.
 Andamento delle performance docenti nel tempo.
 
 **Query Params:**
-- `startDate`: Data di inizio (formato `YYYY-MM-DD`, opzionale)
-- `endDate`: Data di fine (formato `YYYY-MM-DD`, opzionale)
-- `format`: Formato di output (`json`, `csv`, `pdf`, default: `json`)
+- `startDate`: Data di inizio (formato `YYYY-MM-DD`)
+- `endDate`: Data di fine (formato `YYYY-MM-DD`)
+- `format`: Formato di output (`json`, `pdf`, default: `json`)
 
 **Esempio Response**
 ```json
@@ -284,7 +324,7 @@ Panoramica generale dell'intera piattaforma.
 | Codice | Descrizione                    |
 |--------|--------------------------------|
 | 400    | Parametri errati o assenti     |
-| 401    | Token non presente o invalido  |
+| 403    | Token non presente o invalido  |
 | 404    | Risorsa non trovata            |
 | 500    | Errore interno                 |
 
@@ -298,72 +338,10 @@ Authorization: Bearer <token>
 
 Il microservizio verifica la validità e l'integrità del token controllando la **firma digitale tramite chiave pubblica RSA**, fornita dal microservizio di autenticazione esterno.
 
-## DTO (Data Transfer Objects)
-
-### StudentReportDto
-
-```java
-public class StudentReportDto {
-    private String studentId;
-    private String studentName;
-    private String studentEmail;
-    private Integer enrolledCourses;
-    private Integer completedExams;
-    private Double averageGrade;
-    private Double attendanceRate;
-    private Integer assignmentsSubmitted;
-    private Integer assignmentsTotal;
-    private LocalDateTime reportGeneratedAt;
-}
-```
-
-### CourseReportDto
-
-```java
-public class CourseReportDto {
-    private String courseId;
-    private String courseName;
-    private String courseCode;
-    private Integer enrolledStudents;
-    private Double averageGrade;
-    private Double passRate;
-    private Double attendanceRate;
-    private Double assignmentCompletionRate;
-    private LocalDateTime reportGeneratedAt;
-}
-```
-
-### TeacherReportDto
-
-```java
-public class TeacherReportDto {
-    private String teacherId;
-    private String teacherName;
-    private String teacherEmail;
-    private Integer coursesTeaching;
-    private Integer totalStudents;
-    private Double averageFeedback;
-    private Double responseRate;
-    private LocalDateTime reportGeneratedAt;
-}
-```
-
-### ReportRequestDto
-
-```java
-public class ReportRequestDto {
-    private String reportType;
-    private String targetId;
-    private LocalDate startDate;
-    private LocalDate endDate;
-    private String format;
-}
-```
----
 
 ## Caching dei Report
 
-Il microservizio implementa una cache persistente dei report generati, tramite la classe `ReportCache` e il repository associato.  
+Il microservizio implementa una cache persistente dei report generati, tramite la classe `ReportCacheReèpsitory` e il repository associato.  
 Quando viene richiesta la generazione di un report, viene prima verificata la presenza di una versione già disponibile in cache.  
 Se esistente, il report viene restituito immediatamente, altrimenti viene generato, memorizzato e poi restituito.  
 Questo migliora le performance e riduce il carico sui dati di origine.
@@ -379,20 +357,50 @@ Questo migliora le performance e riduce il carico sui dati di origine.
 - **Gestione Presenze**
 - **Valutazione e Feedback**
 
-## Installazione e Avvio Locale
 
-### Prerequisiti
-- Java 17
-- Maven 3.8+
-- PostgreSQL (con database configurato)
+---
 
-### Avvio rapido
+## Generazione PDF
 
-```sh
-git clone https://github.com/f-ferretti/Analisi-Reportistica.git
-cd Analisi-Reportistica
+- Usa **iTextPDF 5.5.13.3** in `PdfGenerator`.
+- Aggiunge:
+    - Logo (`src/main/resources/logo.png`)
+    - Titolo (es. "Docente 42: Valutazioni")
+    - Tabella con intestazioni
+    - Footer con numero pagina
+- Titolo generato in `ReportServiceImpl.extractItalianTitle(...)` mappando entità e report.
+
+---
+
+## Build & Avvio
+
+```bash
+npm install # (non serve)
 mvn clean package
-java -jar target/analisi-reportistica-*.jar
+java -jar target/*.jar
 ```
 
-Configura la connessione a PostgreSQL nel file `application.yml` o tramite variabili d’ambiente.
+Oppure:
+
+```bash
+mvn spring-boot:run
+```
+
+---
+
+## Swagger UI
+
+Visibile su:
+
+```
+http://localhost:8080/swagger-ui/index.html
+```
+
+Documentazione interattiva di tutti gli endpoint con descrizioni e possibilità di test.
+
+---
+
+## Note
+
+- I DTO vengono creati ad-hoc nel service; non esistono classi DTO fisse per ogni risposta.
+- Per disabilitare il database, esgcludere 'DataSourceAutoConfiguration' in `@SpringBootApplication`.

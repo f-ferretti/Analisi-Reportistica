@@ -1,55 +1,34 @@
 package it.unimol.report_management.service;
 
 import org.springframework.http.ResponseEntity;
-import java.util.Map;
 
+/**
+ * Interfaccia per il servizio che gestisce il forwarding
+ * delle richieste al microservizio Python stub e
+ * la generazione del report in JSON o PDF.
+ */
 public interface ReportService {
-    ResponseEntity<byte[]> generateStudentActivityPdf(String studentId, String startDate, String endDate, String format);
-    ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format);
 
-    ResponseEntity<byte[]> generateStudentGradesPdf(String studentId, String format);
-    ResponseEntity<?> getStudentGrades(String studentId, String format);
+    // === DOCENTI ===
+    ResponseEntity<?> getTeacherFeedback(int teacherId, String startDate, String endDate, String format);
+    ResponseEntity<?> getTeacherRatings(int teacherId, String format);
+    ResponseEntity<?> getTeacherAverage(int teacherId, String format);
+    ResponseEntity<?> getTeacherPerformance(int teacherId, String startDate, String endDate, String format);
 
-    ResponseEntity<byte[]> generateStudentProgressPdf(String studentId);
-    ResponseEntity<?> getStudentProgress(String studentId);
+    // === STUDENTI ===
+    ResponseEntity<?> getStudentGrades(int studentId, String format);
+    ResponseEntity<?> getStudentProgress(int studentId, String format);
+    ResponseEntity<?> getStudentAverage(int studentId, String format);
+    ResponseEntity<?> getStudentCompletionRate(int studentId, String format);
+    ResponseEntity<?> getStudentPerformance(int studentId, String startDate, String endDate, String format);
+    ResponseEntity<?> getStudentActivity(int studentId, String startDate, String endDate, String format);
 
-    ResponseEntity<byte[]> generateStudentAveragePdf(String studentId);
-    ResponseEntity<?> getStudentAverage(String studentId);
+    // === CORSI ===
+    ResponseEntity<?> getCourseAverage(int courseId, String format);
+    ResponseEntity<?> getCourseDistribution(int courseId, String format);
+    ResponseEntity<?> getCourseCompletionRate(int courseId, String format);
+    ResponseEntity<?> getCoursePerformance(int courseId, String startDate, String endDate, String format);
 
-    ResponseEntity<byte[]> generateStudentCompletionRatePdf(String studentId);
-    ResponseEntity<?> getStudentCompletionRate(String studentId);
-
-    ResponseEntity<byte[]> generateCourseAveragePdf(String courseId);
-    ResponseEntity<?> getCourseAverage(String courseId);
-
-    ResponseEntity<byte[]> generateCourseGradeDistributionPdf(String courseId);
-    ResponseEntity<?> getCourseGradeDistribution(String courseId);
-
-    ResponseEntity<byte[]> generateCourseCompletionRatePdf(String courseId);
-    ResponseEntity<?> getCourseCompletionRate(String courseId);
-
-    ResponseEntity<byte[]> generateTeacherRatingsPdf(String teacherId);
-    ResponseEntity<?> getTeacherRatings(String teacherId);
-
-    ResponseEntity<byte[]> generateTeacherAveragePdf(String teacherId);
-    ResponseEntity<?> getTeacherAverage(String teacherId);
-
-    ResponseEntity<byte[]> generateTeacherFeedbackPdf(String teacherId);
-    ResponseEntity<?> getTeacherFeedback(String teacherId);
-
-    ResponseEntity<byte[]> generateStudentPerformanceOverTimePdf(String studentId, String startDate, String endDate, String format);
-    ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format);
-
-    ResponseEntity<byte[]> generateCoursePerformanceOverTimePdf(String courseId, String startDate, String endDate, String format);
-    ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format);
-
-    ResponseEntity<byte[]> generateTeacherPerformanceOverTimePdf(String teacherId, String startDate, String endDate, String format);
-    ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format);
-
-    ResponseEntity<byte[]> generateGlobalSummaryPdf();
-    ResponseEntity<?> getGlobalSummary();
-
-    // Metodi aggiuntivi richiesti
-    Map<String, Object> getGlobalSummaryMap();
-    byte[] generateGlobalSummaryPdfRaw();
+    // === RIEPILOGO GLOBALE ===
+    ResponseEntity<?> getGlobalSummary(String format);
 }

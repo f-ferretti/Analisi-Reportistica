@@ -1,206 +1,217 @@
+// src/main/java/it/unimol/report_management/service/impl/ReportServiceImpl.java
 package it.unimol.report_management.service.impl;
 
-import com.lowagie.text.*;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
-import it.unimol.report_management.model.ReportCache;
-import it.unimol.report_management.repository.ReportCacheRepository;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import it.unimol.report_management.pdf.PdfGenerator;
 import it.unimol.report_management.service.ReportService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.http.*;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.ByteArrayOutputStream;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 @Service
 public class ReportServiceImpl implements ReportService {
-    private static final Logger logger = LoggerFactory.getLogger(ReportServiceImpl.class);
-    private final ReportCacheRepository cacheRepo;
 
-    public ReportServiceImpl(ReportCacheRepository cacheRepo) {
-        this.cacheRepo = cacheRepo;
-    }
+    private final RestTemplate restTemplate = new RestTemplate();
 
-    // ========== PDF ==========
-    @Override
-    public ResponseEntity<byte[]> generateStudentActivityPdf(String studentId, String startDate, String endDate, String format) {
-        String params = toParams(startDate, endDate);
-        return getOrGeneratePdf("student_activity", studentId, params,
-                new String[][]{{"Lezione","Data","Stato"},{"Reti","2025-03-15","Presente"}},
-                "Attività Studente", startDate, endDate);
-    }
-    @Override public ResponseEntity<byte[]> generateStudentGradesPdf(String studentId, String format) {
-        return getOrGeneratePdf("student_grades", studentId, "", new String[][]{{"Corso","Voto"},{"Basi di Dati","28"}},"Voti Studente", null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateStudentProgressPdf(String studentId) {
-        return getOrGeneratePdf("student_progress", studentId, "", new String[][]{{"CFU Completati","120"}},"Progresso Studente",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateStudentAveragePdf(String studentId) {
-        return getOrGeneratePdf("student_average", studentId, "", new String[][]{{"Media","27.5"}},"Media Studente",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateStudentCompletionRatePdf(String studentId) {
-        return getOrGeneratePdf("student_completion_rate", studentId, "", new String[][]{{"Completamento","92%"}},"Completamento Studente",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateCourseAveragePdf(String courseId) {
-        return getOrGeneratePdf("course_average", courseId, "", new String[][]{{"Media","26.7"}},"Media Corso",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateCourseGradeDistributionPdf(String courseId) {
-        return getOrGeneratePdf("course_grade_distribution", courseId, "", new String[][]{{"18-20","5"}},"Distribuzione Corso",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateCourseCompletionRatePdf(String courseId) {
-        return getOrGeneratePdf("course_completion_rate", courseId, "", new String[][]{{"Completamento","85%"}},"Completamento Corso",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateTeacherRatingsPdf(String teacherId) {
-        return getOrGeneratePdf("teacher_ratings", teacherId, "", new String[][]{{"Studente","Voto"}},"Valutazioni Docente",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateTeacherAveragePdf(String teacherId) {
-        return getOrGeneratePdf("teacher_average", teacherId, "", new String[][]{{"Media","28.1"}},"Media Docente",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateTeacherFeedbackPdf(String teacherId) {
-        return getOrGeneratePdf("teacher_feedback", teacherId, "", new String[][]{{"Studente","Feedback"}},"Feedback Docente",null,null);
-    }
-    @Override public ResponseEntity<byte[]> generateStudentPerformanceOverTimePdf(String studentId, String startDate, String endDate, String format) {
-        return getOrGeneratePdf("student_performance_over_time", studentId, toParams(startDate,endDate),
-                new String[][]{{"2024-09","26"}},"Performance Studente",startDate,endDate);
-    }
-    @Override public ResponseEntity<byte[]> generateCoursePerformanceOverTimePdf(String courseId, String startDate, String endDate, String format) {
-        return getOrGeneratePdf("course_performance_over_time", courseId, toParams(startDate,endDate), new String[][]{{"2024-10","25"}},"Performance Corso",startDate,endDate);
-    }
-    @Override public ResponseEntity<byte[]> generateTeacherPerformanceOverTimePdf(String teacherId, String startDate, String endDate, String format) {
-        return getOrGeneratePdf("teacher_performance_over_time", teacherId, toParams(startDate,endDate), new String[][]{{"2024-10","28"}},"Performance Docente",startDate,endDate);
-    }
-    @Override
-    public ResponseEntity<byte[]> generateGlobalSummaryPdf() {
-        String placeholder = "PDF non ancora implementato";
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=global_summary.pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(placeholder.getBytes(StandardCharsets.UTF_8));
-    }
+    @Value("${stub.base-url}")
+    private String stubBaseUrl;
 
-    // ========== JSON ==========
-    @Override public ResponseEntity<?> getStudentActivity(String studentId, String startDate, String endDate, String format) {
-        return getOrGenerateJson("student_activity", studentId, toParams(startDate,endDate), Map.of("exams",5));
-    }
-    @Override public ResponseEntity<?> getStudentGrades(String studentId, String format) {
-        return getOrGenerateJson("student_grades", studentId, "", Map.of("grades", new int[]{28,30,27}));
-    }
-    @Override public ResponseEntity<?> getStudentProgress(String studentId) {
-        return getOrGenerateJson("student_progress", studentId, "", Map.of("progress",82.5));
-    }
-    @Override public ResponseEntity<?> getStudentAverage(String studentId) {
-        return getOrGenerateJson("student_average", studentId, "", Map.of("average",27.3));
-    }
-    @Override public ResponseEntity<?> getStudentCompletionRate(String studentId) {
-        return getOrGenerateJson("student_completion_rate", studentId, "", Map.of("rate",0.89));
-    }
-    @Override public ResponseEntity<?> getCourseAverage(String courseId) {
-        return getOrGenerateJson("course_average", courseId, "", Map.of("average",26.7));
-    }
-    @Override public ResponseEntity<?> getCourseGradeDistribution(String courseId) {
-        return getOrGenerateJson("course_grade_distribution", courseId, "", Map.of("dist", Map.of("18-20",5)));
-    }
-    @Override public ResponseEntity<?> getCourseCompletionRate(String courseId) {
-        return getOrGenerateJson("course_completion_rate", courseId, "", Map.of("rate",0.81));
-    }
-    @Override public ResponseEntity<?> getTeacherRatings(String teacherId) {
-        return getOrGenerateJson("teacher_ratings", teacherId, "", Map.of("ratings", new int[]{5,4,3}));
-    }
-    @Override public ResponseEntity<?> getTeacherAverage(String teacherId) {
-        return getOrGenerateJson("teacher_average", teacherId, "", Map.of("average",28.1));
-    }
-    @Override public ResponseEntity<?> getTeacherFeedback(String teacherId) {
-        return getOrGenerateJson("teacher_feedback", teacherId, "", Map.of("feedback", new String[]{"Ottimo","Chiaro"}));
-    }
-    @Override public ResponseEntity<?> getStudentPerformanceOverTime(String studentId, String startDate, String endDate, String format) {
-        return getOrGenerateJson("student_performance_over_time", studentId, toParams(startDate,endDate), Map.of("monthly", Map.of("2024-09",26)));
-    }
-    @Override public ResponseEntity<?> getCoursePerformanceOverTime(String courseId, String startDate, String endDate, String format) {
-        return getOrGenerateJson("course_performance_over_time", courseId, toParams(startDate,endDate), Map.of("monthly", Map.of("2024-10",25)));
-    }
-    @Override public ResponseEntity<?> getTeacherPerformanceOverTime(String teacherId, String startDate, String endDate, String format) {
-        return getOrGenerateJson("teacher_performance_over_time", teacherId, toParams(startDate,endDate), Map.of("monthly", Map.of("2024-10",28)));
-    }
+    // === DOCENTI ===
     @Override
-    public ResponseEntity<?> getGlobalSummary() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("totalReports", 0);
-        result.put("generatedAt", System.currentTimeMillis());
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
-    }
-
-    // ========== NUOVI METODI PER INTERFACCIA ==========
-    @Override
-    public Map<String, Object> getGlobalSummaryMap() {
-        Map<String, Object> result = new HashMap<>();
-        result.put("totalReports", 0);
-        result.put("generatedAt", System.currentTimeMillis());
-        return result;
+    public ResponseEntity<?> getTeacherFeedback(int teacherId, String startDate, String endDate, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/teachers/" + teacherId + "/feedback")
+                .queryParam("startDate", startDate)
+                .queryParam("endDate", endDate)
+                .toUriString();
+        return forwardRequest(url, format);
     }
 
     @Override
-    public byte[] generateGlobalSummaryPdfRaw() {
-        String placeholder = "PDF non ancora implementato";
-        return placeholder.getBytes(StandardCharsets.UTF_8);
+    public ResponseEntity<?> getTeacherRatings(int teacherId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/teachers/" + teacherId + "/ratings").toUriString();
+        return forwardRequest(url, format);
     }
 
-    // ===== utils =====
-    private <T> ResponseEntity<T> getOrGenerateJson(
-            String type, String id, String params, T body) {
-        String fmt = "json";
-        Optional<ReportCache> c = cacheRepo.findByReportTypeAndTargetIdAndParametersAndFormat(type,id,params,fmt);
-        if (c.isPresent()) return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body((T)c.get().getReportDataAsJson());
-        cacheRepo.save(ReportCache.builder().reportType(type).targetId(id).parameters(params).format(fmt)
-                .reportData(body.toString().getBytes(StandardCharsets.UTF_8)).generatedAt(LocalDateTime.now()).build());
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(body);
+    @Override
+    public ResponseEntity<?> getTeacherAverage(int teacherId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/teachers/" + teacherId + "/average").toUriString();
+        return forwardRequest(url, format);
     }
 
-    private ResponseEntity<byte[]> getOrGeneratePdf(
-            String type, String id, String params, String[][] rows,
-            String title, String start, String end) {
-        String fmt = "pdf";
-        Optional<ReportCache> c = cacheRepo.findByReportTypeAndTargetIdAndParametersAndFormat(type,id,params,fmt);
-        if (c.isPresent()) {
-            return ResponseEntity.ok()
-                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=report.pdf")
-                    .contentType(MediaType.APPLICATION_PDF)
-                    .body(c.get().getReportData());
-        }
-        byte[] pdf = buildPdf(title,id,start,end,rows);
-        cacheRepo.save(ReportCache.builder().reportType(type).targetId(id).parameters(params).format(fmt)
-                .reportData(pdf).generatedAt(LocalDateTime.now()).build());
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=report.pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
+    @Override
+    public ResponseEntity<?> getTeacherPerformance(int teacherId, String startDate, String endDate, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/teachers/" + teacherId + "/performance-over-time")
+                .queryParam("startDate", startDate)
+                .queryParam("endDate", endDate)
+                .toUriString();
+        return forwardRequest(url, format);
     }
 
-    private byte[] buildPdf(String title, String id, String start, String end, String[][] data) {
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document doc = new Document();
-            PdfWriter.getInstance(doc,out);
-            doc.open();
-            doc.add(new Paragraph(title));
-            doc.add(new Paragraph("ID: "+id));
-            if (start!=null) doc.add(new Paragraph("Start: "+start));
-            if (end!=null) doc.add(new Paragraph("End: "+end));
-            doc.add(Chunk.NEWLINE);
-            PdfPTable table = new PdfPTable(data[0].length);
-            Arrays.stream(data).forEach(r-> Arrays.stream(r).forEach(table::addCell));
-            doc.add(table);
-            doc.close();
-            return out.toByteArray();
+    // === STUDENTI ===
+    @Override
+    public ResponseEntity<?> getStudentGrades(int studentId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/students/" + studentId + "/grades").toUriString();
+        return forwardRequest(url, format);
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentProgress(int studentId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/students/" + studentId + "/progress").toUriString();
+        return forwardRequest(url, format);
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentAverage(int studentId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/students/" + studentId + "/average").toUriString();
+        return forwardRequest(url, format);
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentCompletionRate(int studentId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/students/" + studentId + "/completion-rate").toUriString();
+        return forwardRequest(url, format);
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentPerformance(int studentId, String startDate, String endDate, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/students/" + studentId + "/performance-over-time")
+                .queryParam("startDate", startDate)
+                .queryParam("endDate", endDate)
+                .toUriString();
+        return forwardRequest(url, format);
+    }
+
+    @Override
+    public ResponseEntity<?> getStudentActivity(int studentId, String startDate, String endDate, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/students/" + studentId + "/activity")
+                .queryParam("startDate", startDate)
+                .queryParam("endDate", endDate)
+                .toUriString();
+        return forwardRequest(url, format);
+    }
+
+    // === CORSI ===
+    @Override
+    public ResponseEntity<?> getCourseAverage(int courseId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/courses/" + courseId + "/average").toUriString();
+        return forwardRequest(url, format);
+    }
+
+    @Override
+    public ResponseEntity<?> getCourseDistribution(int courseId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/courses/" + courseId + "/distribution").toUriString();
+        return forwardRequest(url, format);
+    }
+
+    @Override
+    public ResponseEntity<?> getCourseCompletionRate(int courseId, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/courses/" + courseId + "/completion-rate").toUriString();
+        return forwardRequest(url, format);
+    }
+
+    @Override
+    public ResponseEntity<?> getCoursePerformance(int courseId, String startDate, String endDate, String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/courses/" + courseId + "/performance-over-time")
+                .queryParam("startDate", startDate)
+                .queryParam("endDate", endDate)
+                .toUriString();
+        return forwardRequest(url, format);
+    }
+
+    // === RIEPILOGO GLOBALE ===
+    @Override
+    public ResponseEntity<?> getGlobalSummary(String format) {
+        String url = UriComponentsBuilder.fromHttpUrl(stubBaseUrl + "/summary").toUriString();
+        return forwardRequest(url, format);
+    }
+
+    /**
+     * Forward della richiesta e generazione PDF con titolo in italiano.
+     */
+    private ResponseEntity<?> forwardRequest(String url, String format) {
+        try {
+            // Chiamata al downstream stub
+            ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+            String jsonBody = response.getBody();
+            if ("pdf".equalsIgnoreCase(format)) {
+                // Deserializza JSON in lista di mappe
+                ObjectMapper mapper = new ObjectMapper();
+                JsonNode root = mapper.readTree(jsonBody);
+                List<Map<String,Object>> dataList = new ArrayList<>();
+                if (root.isArray()) {
+                    for (JsonNode el : root) {
+                        if (el.isObject()) {
+                            dataList.add(mapper.convertValue(el, new TypeReference<Map<String,Object>>(){}));
+                        } else {
+                            Map<String,Object> m = new LinkedHashMap<>();
+                            m.put("valore", el.asText());
+                            dataList.add(m);
+                        }
+                    }
+                } else if (root.isObject()) {
+                    dataList.add(mapper.convertValue(root, new TypeReference<Map<String,Object>>(){}));
+                }
+                // Genera titolo in italiano
+                String titolo = extractItalianTitle(url);
+                byte[] pdf = PdfGenerator.createTablePdf(titolo, dataList);
+                return ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .body(pdf);
+            } else {
+                return ResponseEntity.ok()
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(jsonBody);
+            }
+        } catch (HttpClientErrorException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getResponseBodyAsString());
         } catch (Exception e) {
-            logger.error("PDF generation failed",e);
-            return new byte[0];
+            return ResponseEntity.status(500).body("Internal error: " + e.getMessage());
         }
     }
 
-    private String toParams(String s, String e) {
-        return String.format("{\"start\":\"%s\",\"end\":\"%s\"}", s,e);
+    /**
+     * Estrae e traduce in italiano il titolo dal path URL.
+     */
+    private String extractItalianTitle(String url) {
+        String path = url.substring(stubBaseUrl.length());
+        if (path.contains("?")) path = path.substring(0, path.indexOf("?"));
+        String[] parts = path.split("/");
+        if (parts.length >= 4) {
+            String entity = parts[1];
+            String id     = parts[2];
+            String report = parts[3];
+            Map<String,String> itEntities = new HashMap<>();
+            itEntities.put("teachers", "Docente");
+            itEntities.put("students", "Studente");
+            itEntities.put("courses",  "Corso");
+            Map<String,String> itReports = new HashMap<>();
+            itReports.put("feedback", "Feedback");
+            itReports.put("ratings",  "Valutazioni");
+            itReports.put("average",  "Media");
+            itReports.put("performance-over-time", "Andamento");
+            itReports.put("grades", "Voti");
+            itReports.put("progress", "Progresso");
+            itReports.put("completion-rate", "Completamento");
+            itReports.put("distribution", "Distribuzione");
+            itReports.put("activity", "Attività");
+            itReports.put("summary", "Riepilogo");
+            String itEntity = itEntities.getOrDefault(entity, entity);
+            String itReport = itReports.getOrDefault(report, report);
+            return String.format("%s %s: %s", itEntity, id, itReport);
+        }
+        // Fallback generico
+        return path.replace('/', ' ');
     }
 }
