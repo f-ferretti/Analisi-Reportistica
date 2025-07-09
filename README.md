@@ -323,7 +323,6 @@ Panoramica generale dell'intera piattaforma.
 
 | Codice | Descrizione                    |
 |--------|--------------------------------|
-| 400    | Parametri errati o assenti     |
 | 403    | Token non presente o invalido  |
 | 404    | Risorsa non trovata            |
 | 500    | Errore interno                 |
