@@ -1,40 +1,23 @@
-# Microservizio Report Management
+# Report Management — Documentazione di Progetto
 
-Questo progetto è un microservizio Java basato su Spring Boot che espone API REST per la generazione di report **docenti**, **studenti** e **corsi** in formato JSON o PDF. Supporta autenticazione JWT, persistenza su PostgreSQL e generazione PDF con iText.
-
----
-
-## Tecnologie e Dipendenze
-
-- **Java 17**
-- **Spring Boot 3.2.5**
-- **Spring Data JPA** per l’accesso a PostgreSQL
-- **PostgreSQL JDBC Driver** (runtime)
-- **Spring Security** + **JWT** per protezione endpoint
-- **iTextPDF 5.5.13.3** per generazione PDF
-- **springdoc-openapi 2.3.0** per Swagger UI
-- **Lombok 1.18.30**
+Microservizio Java/Spring Boot che espone API REST per la generazione di report **studenti**, **corsi** e **docenti** in **JSON** e **PDF**.
 
 ---
 
-## Architettura dei Pacchetti
+## Tecnologie
 
-```
-src/main/java/it/unimol/report_management/
-├─ controller/         # REST controller con annotazioni OpenAPI in italiano
-├─ service/            # Interfaccia ReportService
-├─ service/impl/       # Implementazione con forwardRequest e creazione PDF
-├─ security/           # JwtAuthenticationFilter
-├─ config/             # SecurityConfig (SecurityFilterChain, CORS, JWT bean)
-├─ pdf/                # PdfGenerator (logo, header, footer, tabelle)
-└─ ReportManagementApplication.java  # classe main Spring Boot
-```
+- Java 17
+- Spring Boot 3.2.x (Web, Validation, Security, Data JPA)
+- PostgreSQL
+- iTextPDF 5.5.x (generazione PDF)
+- springdoc‑openapi (Swagger UI)
+- JJWT (validazione JWT)
 
 ---
 
 ## Configurazione
 
-### application.yml
+### `application.yml`
 
 ```yaml
 spring:
@@ -48,358 +31,216 @@ spring:
       ddl-auto: update
     show-sql: true
 stub:
-  base-url: http://localhost:8000/api/v1/reports  # URL del Python stub
+  base-url: http://localhost:8000/api/v1/reports   # endpoint dello stub esterno
 server:
   port: 8080
 ```
 
-- Sostituire `<HOST>`, `<PORT>`, `<DB_NAME>`, `<DB_USER>` e `<DB_PASS>` con i propri valori.
-- `stub.base-url` punta al microservizio Python stub.
-
 ### Chiave pubblica JWT
 
-- Posizionata in `src/main/resources/jwt/public_key.pem`
-- Usata da `TokenJWTService` per validare la firma.
+- Percorso: `src/main/resources/jwt/public_key.pem`
+- Caricata e usata da `TokenJWTService` per la verifica della firma (RS256).
 
 ---
 
+## Sicurezza
 
-## API Endpoints
+- Tutte le API (eccetto `/swagger-ui/**`, `/v3/api-docs/**`, `/actuator/health`, `/health`) richiedono **JWT** nell’header:
+
+  `Authorization: Bearer <token>`
+
+- Il filtro `JwtAuthenticationFilter`:
+
+  - valida la firma tramite `TokenJWTService` (chiave pubblica RSA),
+  - estrae `sub` (utente) e l’array `roles` dal token,
+  - mappa i ruoli in `ROLE_*` e popola il `SecurityContext`.
+
+- I controller usano `@PreAuthorize` dove serve; in caso di mancanza/invalidità del token rispondono con **401** JSON uniforme.
+
+---
+
+## Struttura dei pacchetti
+
+```
+src/main/java/it/unimol/report_management/
+├─ controller/              # REST controller e mapping degli endpoint
+├─ service/                 # logica applicativa
+├─ client/                  # StubClient per chiamate al servizio esterno
+├─ dto/                     # DTO di input/output
+├─ util/                    # PdfUtil (iText), util varie
+├─ security/                # SecurityConfig, JwtAuthenticationFilter
+├─ config/                  # OpenAPIConfig, RestTemplate/WebClient
+└─ web/                     # ApiError
+```
+
+---
+
+## API
+
+Base path per gruppo:
+
+- Studenti: `/api/v1/students`
+- Corsi: `/api/v1/courses`
+- Docenti: `/api/v1/teachers`
 
 ### Studenti
 
-#### `GET /api/v1/reports/students/{studentId}/activity`
-Restituisce attività di esami e compiti svolti.
+#### 1) Esami superati
 
-**Query Params:**
-- `startDate`: Data di inizio (formato `YYYY-MM-DD`)
-- `endDate`: Data di fine (formato `YYYY-MM-DD`)
-- `format`: Formato di output (`json`, `pdf`, default: `json`)
+`GET /api/v1/students/{matricola}/exams/passed`
 
-**Esempio Response**
+- `matricola`: 6 cifre (regex `^\d{6}$`).
+- Risposta: `List<ExamResultDTO>`.
+
+`ExamResultDTO` (campi principali):
+
 ```json
 {
-  "studentId": "123",
-  "assignmentsCompleted": 10,
-  "examsTaken": 5
+  "codiceCorso": "ST101",
+  "nomeCorso": "Programmazione 1",
+  "cfu": 9,
+  "voto": 28,
+  "lode": false,
+  "data": "2025-02-20",
+  "aaSuperamento": 2025,
+  "aaFrequenza": 2024
 }
 ```
 
----
+#### 2) Esami mancanti (piano – superati)
 
-#### `GET /api/v1/reports/students/{studentId}/grades`
-**Path Param:** `studentId` – ID dello studente (proveniente dal microservizio Gestione Utenti)  
-Restituisce voti degli esami.
+`GET /api/v1/students/{matricola}/exams/pending`
 
-**Esempio Response**
+- `matricola`: 6 cifre.
+- Risposta: `List<PlanItemDTO>` con campi: `codice`, `nome`, `cfu`, `annoCorso`, `obbligatorio`.
+
+#### 3) Progresso CFU
+
+`GET /api/v1/students/{matricola}/credits/progress`
+
+Risposta `CreditsProgressDTO`:
+
 ```json
 {
-  "studentId": "123",
-  "grades": [28, 30, 27]
+  "earnedCfu": 120,
+  "totalCfu": 180,
+  "missingCfu": 60,
+  "percent": 66.67
 }
 ```
 
----
+#### 4) Stima voto di laurea
 
-#### `GET /api/v1/reports/students/{studentId}/progress`
-**Path Param:** `studentId` – ID dello studente (proveniente dal microservizio Gestione Utenti)  
-Restituisce la percentuale di completamento del percorso.
+`GET /api/v1/students/{matricola}/graduation/estimate`
 
-**Esempio Response**
+- Query param opzionali: `annoAccademico` (alias accettati: `aa`, `anno`). Se assente, usa anno corrente.
+- Risposta `GraduationEstimateDTO`:
+
 ```json
 {
-  "studentId": "123",
-  "progressPercentage": 82.5
+  "weightedAvg30": 27.4,
+  "base110": 100,
+  "finalEstimate": 107
 }
 ```
 
----
+#### 5) Report completo (PDF)
 
-#### `GET /api/v1/reports/students/{studentId}/average`
-**Path Param:** `studentId` – ID dello studente (proveniente dal microservizio Gestione Utenti)  
-Restituisce media aritmetica dei voti.
+`GET /api/v1/students/{matricola}/summary.pdf`
 
-**Esempio Response**
-```json
-{
-  "studentId": "123",
-  "averageGrade": 27.3
-}
-```
-
----
-
-#### `GET /api/v1/reports/students/{studentId}/completion-rate`
-**Path Param:** `studentId` – ID dello studente (proveniente dal microservizio Gestione Utenti)  
-Percentuale di completamento degli esami o moduli.
-
-**Esempio Response**
-```json
-{
-  "studentId": "123",
-  "completionRate": 0.89
-}
-```
-
----
-
-#### `GET /api/v1/reports/students/{studentId}/performance-over-time`
-Andamento delle performance mensili.
-
-**Query Params:**
-- `startDate`: Data di inizio (formato `YYYY-MM-DD`)
-- `endDate`: Data di fine (formato `YYYY-MM-DD`)
-- `format`: Formato di output (`json`, `pdf`, default: `json`)
-
-**Esempio Response**
-```json
-{
-  "studentId": "123",
-  "monthlyPerformance": {
-    "2024-09": 26,
-    "2024-10": 28
-  }
-}
-```
-
----
+- Query param opzionale: `annoAccademico`.
+- Risposta: PDF (header `Content-Disposition: attachment; filename=student_summary_{matricola}[_AA].pdf`).
 
 ### Corsi
 
-#### `GET /api/v1/reports/courses/{courseId}/average`
-**Path Param:** `courseId` – ID del corso (proveniente dal microservizio Gestione Corsi)  
-Media voti nel corso.
+#### 1) Iscritti per anno
 
-**Esempio Response**
-```json
-{
-  "courseId": "INF001",
-  "averageGrade": 26.7
-}
-```
+`GET /api/v1/courses/{courseCode}/enrollments`
 
----
+- `courseCode`: `^[A-Za-z0-9_-]{2,32}$`.
+- Risposta: `List<Map<String,Integer>>` normalizzata a coppie `{ "anno": <int>, "iscritti": <int> }`.
 
-#### `GET /api/v1/reports/courses/{courseId}/distribution`
-**Path Param:** `courseId` – ID del corso (proveniente dal microservizio Gestione Corsi)  
-Distribuzione voti.
+#### 2) Voti del corso (JSON)
 
-**Esempio Response**
-```json
-{
-  "courseId": "INF001",
-  "gradeDistribution": {
-    "18-20": 5,
-    "21-24": 10,
-    "25-27": 12,
-    "28-30": 8
-  }
-}
-```
+`GET /api/v1/courses/{courseCode}/grades`
 
----
+- Query param opzionale: `annoAccademico` (se assente il controller risolve anno corrente).
+- Risposta: `List<ExamResultDTO>` (come sopra).
 
-#### `GET /api/v1/reports/courses/{courseId}/completion-rate`
-**Path Param:** `courseId` – ID del corso (proveniente dal microservizio Gestione Corsi)  
-Percentuale di completamento del corso.
+#### 3) Distribuzione voti corso (PDF)
 
-**Esempio Response**
-```json
-{
-  "courseId": "INF001",
-  "completionRate": 0.84
-}
-```
+`GET /api/v1/courses/{courseCode}/grades/distribution.pdf`
 
----
-
-#### `GET /api/v1/reports/courses/{courseId}/performance-over-time`
-Andamento delle performance nel tempo.
-
-**Query Params:**
-- `startDate`: Data di inizio (formato `YYYY-MM-DD`)
-- `endDate`: Data di fine (formato `YYYY-MM-DD`)
-- `format`: Formato di output (`json`, `pdf`, default: `json`)
-
-**Esempio Response**
-```json
-{
-  "courseId": "INF001",
-  "monthlyPerformance": {
-    "2024-09": 25.1,
-    "2024-10": 26.8
-  }
-}
-```
-
----
+- Query param obbligatorio: `annoAccademico`.
+- Risposta: PDF con istogramma dei voti.
 
 ### Docenti
 
-#### `GET /api/v1/reports/teachers/{teacherId}/ratings`
-**Path Param:** `teacherId` – ID del docente (proveniente dal microservizio Gestione Utenti)  
-Restituisce valutazioni numeriche ricevute.
+#### 1) Distribuzione voti docente (PDF)
 
-**Esempio Response**
+`GET /api/v1/teachers/{docenteId}/grades/distribution.pdf`
+
+- `docenteId`: `^DOC\d{3}$` (es. `DOC123`).
+- Query param obbligatorio: `annoAccademico`.
+- Risposta: PDF con istogramma aggregato sui corsi del docente.
+
+#### 2) Consistenza anno‑su‑anno (JSON)
+
+`GET /api/v1/teachers/{docenteId}/consistency`
+
+- Query param: `courseCode` (obbligatorio), `from` e `to` (opzionali; default: [anno corrente − 4 .. anno corrente]).
+- Risposta: `TeacherConsistencyDTO` con:
+  - `avgByYear` (media voti per anno),
+  - `passRateByYear` (tasso di superamento),
+  - `stddev`, `trendSlope`, oltre a `teacherId`, `courseCode`, `from`, `to`, `yearsCount`.
+
+---
+
+## Error handling
+
+Formato uniforme (classe `ApiError`):
+
 ```json
 {
-  "teacherId": "T9876",
-  "ratings": [4.2, 4.5, 4.8]
+  "timestamp": "2025-08-20T12:30:00+02:00",
+  "status": 404,
+  "error": "Not Found",
+  "message": "Risorsa non trovata",
+  "path": "/api/v1/...",
+  "details": {"cause": "..."},
+  "correlationId": null
 }
 ```
 
----
-
-#### `GET /api/v1/reports/teachers/{teacherId}/average`
-**Path Param:** `teacherId` – ID del docente (proveniente dal microservizio Gestione Utenti)
-Media delle valutazioni.
-
-**Esempio Response**
-```json
-{
-  "teacherId": "T9876",
-  "averageRating": 4.5
-}
-```
-
----
-
-#### `GET /api/v1/reports/teachers/{teacherId}/feedback`
-**Path Param:** `teacherId` – ID del docente (proveniente dal microservizio Gestione Utenti)  
-Feedback testuali ricevuti.
-
-**Esempio Response**
-```json
-{
-  "teacherId": "T9876",
-  "feedbackList": [
-    "Ottima preparazione",
-    "Spiegazioni chiare"
-  ]
-}
-```
-
----
-
-#### `GET /api/v1/reports/teachers/{teacherId}/performance-over-time`
-Andamento delle performance docenti nel tempo.
-
-**Query Params:**
-- `startDate`: Data di inizio (formato `YYYY-MM-DD`)
-- `endDate`: Data di fine (formato `YYYY-MM-DD`)
-- `format`: Formato di output (`json`, `pdf`, default: `json`)
-
-**Esempio Response**
-```json
-{
-  "teacherId": "T9876",
-  "monthlyPerformance": {
-    "2024-09": 4.3,
-    "2024-10": 4.6
-  }
-}
-```
-
----
-
-### Riepilogo Globale
-
-#### `GET /api/v1/reports/summary`
-**Nessun parametro richiesto.**
-Panoramica generale dell'intera piattaforma.
-
-**Esempio Response**
-```json
-{
-  "totalStudents": 300,
-  "averageGradeOverall": 26.1,
-  "topCourses": ["INF001", "RETI2024"]
-}
-```
-
----
-
-## Gestione Errori
-
-| Codice | Descrizione                    |
-|--------|--------------------------------|
-| 403    | Token non presente o invalido  |
-| 404    | Risorsa non trovata            |
-| 500    | Errore interno                 |
-
-## 🔐 Sicurezza e Autenticazione
-
-Tutti gli endpoint REST richiedono l’autenticazione tramite **JWT**. Il token deve essere incluso nell’header HTTP `Authorization` nel formato:
-
-```
-Authorization: Bearer <token>
-```
-
-Il microservizio verifica la validità e l'integrità del token controllando la **firma digitale tramite chiave pubblica RSA**, fornita dal microservizio di autenticazione esterno.
-
-
-## Caching dei Report
-
-Il microservizio implementa una cache persistente dei report generati, tramite la classe `ReportCacheReèpsitory` e il repository associato.  
-Quando viene richiesta la generazione di un report, viene prima verificata la presenza di una versione già disponibile in cache.  
-Se esistente, il report viene restituito immediatamente, altrimenti viene generato, memorizzato e poi restituito.  
-Questo migliora le performance e riduce il carico sui dati di origine.
-
----
-
-## Integrazione con Altri Microservizi
-
-- **Gestione Utenti e Ruoli**
-- **Gestione Corsi**
-- **Gestione Esami**
-- **Gestione Compiti**
-- **Gestione Presenze**
-- **Valutazione e Feedback**
-
+Codici usati: 400, 401, 403, 404, 422, 500.
 
 ---
 
 ## Generazione PDF
 
-- Usa **iTextPDF 5.5.13.3** in `PdfGenerator`.
-- Aggiunge:
-    - Logo (`src/main/resources/logo.png`)
-    - Titolo (es. "Docente 42: Valutazioni")
-    - Tabella con intestazioni
-    - Footer con numero pagina
-- Titolo generato in `ReportServiceImpl.extractItalianTitle(...)` mappando entità e report.
+- Implementata in `util/PdfUtil` tramite iText 5.
+- Supporta: titolo, metadati, conversione di `BufferedImage` in PDF (`imageToPdf`), e report riassuntivo studente (`studentSummary`).
+- I controller impostano header HTTP per il download (`Content-Disposition: attachment`).
 
 ---
 
-## Build & Avvio
+## Caching dei report&#x20;
+
+- Cache persistente su PostgreSQL, tabella `report_cache` con colonne: `id`, `report_type`, `target_id`, `parameters`, `format`, `report_data` (`bytea`), `generated_at`.
+- TTL default: 24h.
+- Key di cache: `(report_type, target_id, parameters, format)`.
+- Applicata ai PDF: student summary, distribuzione voti corso, distribuzione voti docente.
+
+---
+
+## Build & Run
 
 ```bash
-npm install # (non serve)
 mvn clean package
 java -jar target/*.jar
-```
-
-Oppure:
-
-```bash
+# oppure
 mvn spring-boot:run
 ```
 
----
-
-## Swagger UI
-
-Visibile su:
-
-```
-http://localhost:8080/swagger-ui/index.html
-```
-
-Documentazione interattiva di tutti gli endpoint con descrizioni e possibilità di test.
-
----
-
-## Note
-
-- I DTO vengono creati ad-hoc nel service; non esistono classi DTO fisse per ogni risposta.
-- Per disabilitare il database, esgcludere 'DataSourceAutoConfiguration' in `@SpringBootApplication`.
+Swagger UI: `http://localhost:8080/swagger-ui/index.html`
+Health: `GET /actuator/health`
