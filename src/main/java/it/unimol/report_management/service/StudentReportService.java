@@ -11,7 +11,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.time.Year;
+import java.util.*;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -26,9 +31,11 @@ import static org.springframework.http.HttpStatus.NOT_FOUND;
 public class StudentReportService {
 
     private final StubClient stub;
+    private final CacheService cache;
 
-    public StudentReportService(StubClient stub) {
+    public StudentReportService(StubClient stub, CacheService cache) {
         this.stub = stub;
+        this.cache = cache;
     }
 
     /* ========================= ENDPOINT LOGIC ========================= */
@@ -166,17 +173,117 @@ public class StudentReportService {
     public byte[] summaryPdf(String matricola, Integer annoAccademico) {
         validateMatricola(matricola);
 
-        List<ExamResultDTO> passed  = passedExams(matricola);
-        List<PlanItemDTO>   pending = pendingExams(matricola);
+        // Caching DB (TTL configurabile via cache.ttl-minutes)
+        Map<String,Object> params = new LinkedHashMap<>();
+        if (annoAccademico != null) params.put("annoAccademico", annoAccademico);
+        Optional<byte[]> cached = cache.get("STUDENT_SUMMARY", matricola, params, "pdf");
+        if (cached.isPresent()) return cached.get();
+
+        List<ExamResultDTO> passed = passedExams(matricola);
+        List<PlanItemDTO> pending = pendingExams(matricola);
         GraduationEstimateDTO estimate = graduationEstimateFromStub(matricola, annoAccademico);
 
         // Costruisco lo StudentDTO (serve al PdfUtil). Imposto almeno la matricola.
         StudentDTO student = buildStudentDTO(matricola);
 
-        // L’ultimo parametro è un grafico/immagine opzionale: qui non lo usiamo.
-        BufferedImage chart = null;
+        // Creo il grafico dell'andamento dei voti
+        BufferedImage chart = createGradesChart(passed, "Andamento voti - " + matricola);
 
-        return PdfUtil.studentSummary(student, passed, pending, estimate, chart);
+        byte[] pdfBytes = PdfUtil.studentSummary(student, passed, pending, estimate, chart);
+        cache.put("STUDENT_SUMMARY", matricola, params, "pdf", pdfBytes);
+        return pdfBytes;
+    }
+
+    private BufferedImage createGradesChart(List<ExamResultDTO> exams, String title) {
+        if (exams == null || exams.isEmpty()) return null;
+
+        // Ordino gli esami per data
+        List<ExamResultDTO> sortedExams = exams.stream()
+                .filter(e -> e != null && e.getData() != null && e.getVoto() >= 18)
+                .sorted(Comparator.comparing(ExamResultDTO::getData))
+                .collect(Collectors.toList());
+
+        if (sortedExams.isEmpty()) return null;
+
+        int width = 900, height = 400;
+        BufferedImage img = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g2 = img.createGraphics();
+        try {
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(Color.WHITE);
+            g2.fillRect(0, 0, width, height);
+
+            int left = 60, right = 20, top = 50, bottom = 60;
+            int plotW = width - left - right, plotH = height - top - bottom;
+            int x0 = left, y0 = height - bottom;
+
+            // Titolo
+            g2.setColor(Color.BLACK);
+            g2.setFont(new Font("SansSerif", Font.BOLD, 16));
+            g2.drawString(title, left, 30);
+
+            // Assi
+            g2.drawLine(x0, y0, x0 + plotW, y0);  // Asse X
+            g2.drawLine(x0, y0, x0, y0 - plotH);  // Asse Y
+
+            // Griglia e label asse Y (voti da 18 a 30)
+            g2.setFont(g2.getFont().deriveFont(11f));
+            for (int voto = 18; voto <= 30; voto += 2) {
+                int y = y0 - (int)((voto - 18) * plotH / 12.0);
+                g2.setColor(new Color(230, 230, 230));
+                g2.drawLine(x0, y, x0 + plotW, y);
+                g2.setColor(Color.DARK_GRAY);
+                g2.drawString(String.valueOf(voto), x0 - 25, y + 4);
+            }
+
+            // Punti e linee del grafico
+            g2.setStroke(new BasicStroke(2));
+            g2.setColor(new Color(100, 149, 237)); // CornflowerBlue
+
+            int numExams = sortedExams.size();
+            int[] xPoints = new int[numExams];
+            int[] yPoints = new int[numExams];
+
+            for (int i = 0; i < numExams; i++) {
+                ExamResultDTO exam = sortedExams.get(i);
+                xPoints[i] = x0 + (i * plotW) / (numExams - 1);
+                yPoints[i] = y0 - (int)((exam.getVoto() - 18) * plotH / 12.0);
+
+                // Punto
+                g2.fillOval(xPoints[i] - 4, yPoints[i] - 4, 8, 8);
+
+                // Linea al punto precedente
+                if (i > 0) {
+                    g2.drawLine(xPoints[i-1], yPoints[i-1], xPoints[i], yPoints[i]);
+                }
+
+                // Label corso ruotata
+                g2.setColor(Color.BLACK);
+                g2.rotate(-Math.PI/4);
+                int tx = (int)(xPoints[i] * Math.cos(Math.PI/4) - (y0 + 20) * Math.sin(Math.PI/4));
+                int ty = (int)(xPoints[i] * Math.sin(Math.PI/4) + (y0 + 20) * Math.cos(Math.PI/4));
+                g2.drawString(exam.getCodiceCorso(), tx, ty);
+                g2.rotate(Math.PI/4);
+                g2.setColor(new Color(100, 149, 237));
+            }
+
+            // Etichette assi
+            g2.setColor(Color.BLACK);
+            g2.setFont(g2.getFont().deriveFont(Font.BOLD, 12f));
+            g2.drawString("Esami in ordine cronologico", x0 + plotW/2 - 70, height - 15);
+            g2.rotate(-Math.PI/2);
+            g2.drawString("Voto", -(top + plotH/2 + 20), 20);
+            g2.rotate(Math.PI/2);
+
+            // Info totale
+            g2.setFont(g2.getFont().deriveFont(10f));
+            g2.setColor(Color.GRAY);
+            g2.drawString("N = " + numExams, width - right - 60, height - 10);
+
+        } finally {
+            g2.dispose();
+        }
+        return img;
     }
 
     /* ========================= HELPERS ========================= */
