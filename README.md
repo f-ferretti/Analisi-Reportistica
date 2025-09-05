@@ -1,4 +1,4 @@
-# Report Management — Documentazione di Progetto
+# Analisi e Reportistica — Documentazione
 
 Microservizio Java/Spring Boot che espone API REST per la generazione di report **studenti**, **corsi** e **docenti** in **JSON** e **PDF**.
 
